@@ -12,7 +12,7 @@ We will be communicating through Discord and text messaging.
 
 ## 2. Project topic: Comparative Analysis of Sorting Algorithms Using MPI and CUDA
 
-## 2. _due 10/25_ Brief project description (what algorithms will you be comparing and on what architectures)
+## 3. _due 10/25_ Brief project description (what algorithms will you be comparing and on what architectures)
 Our project aims to compare the performance of various parallel sorting algorithms using two different parallel computing technologies: Message Passing Interface (MPI) and Compute Unified Device Architecture (CUDA). We will be comparing Merge Sort, Quick Sort, and Radix Sort. For Merge Sort and Quick Sort we will be comparing the MPI implementation versus CUDA implementation. For Radix Sort we will be comparing the MPI+CUDA implementation to the CUDA implementation.
 
 
