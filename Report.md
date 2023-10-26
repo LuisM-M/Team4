@@ -45,4 +45,79 @@ Merge Sort (CUDA) *****************************************
 
 We’ll be leveraging sources for implementing Merge Sort with CUDA like: https://www.geeksforgeeks.org/merge-sort/ , https://cuda-tutorial.readthedocs.io/en/latest/tutorials/tutorial01/ 
 
+Radix Sort (CUDA): *********************************************************************************
+
+
+function RadixSort(data):
+    // First determine the number of elements
+    numElements = length(data)
+
+    // Allocate GPU memory for data and temp storage
+    d_data = allocateGPUArray(numElements)
+
+    d_temp = allocateGPUArray(numElements)
+
+    // We must then copy the data from the CPU to GPU
+    copyDataToGPU(data, d_data)
+
+    // Determine the maximum number of bits needed for the data
+    numBits = calculateMaxNumBits(data)
+
+    // Perform radix sort using CUDA
+    RadixSort(d_data, d_temp, numElements, numBits)
+
+    // Copy the sorted data back from GPU to CPU
+    sortedData = copyDataToCPU(d_data, numElements)
+
+    // Free GPU memory
+    freeGPUArray(d_data)
+    freeGPUArray(d_temp)
+
+    return sortedData
+end function
+
+For RadixSortCUDA function we plan to implement Radix Sort much like this reference from Geeks2Geeks https://www.geeksforgeeks.org/radix-sort/#:
+
+function RadixSort(data, numElements):
+    // Find the maximum value in the data to determine the number of digits
+    maxVal = findMaxValue(data)
+    numDigits = countDigits(maxVal)
+
+    // Initialize a count array to hold the count of digits (0-9)
+    count = new int[10]
+
+    // Initialize an output array to store the sorted data
+    output = new int[numElements]
+
+    // Perform counting sort for each digit, from the least significant to the most significant
+    for digitPosition from 1 to numDigits:
+        // Reset the count array
+        for i from 0 to 9:
+            count[i] = 0
+
+        // Count the occurrences of each digit in data
+        for i from 0 to numElements:
+            digit = getDigit(data[i], digitPosition)
+            count[digit]++
+
+        // Update the count array to contain the actual position of each digit in the output
+        for i from 1 to 9:
+            count[i] += count[i - 1]
+
+        // Build the output array using the count array
+        for i from numElements - 1 down to 0:
+            digit = getDigit(data[i], digitPosition)
+            output[count[digit] - 1] = data[i]
+            count[digit]--
+
+        // Copy the output array back to the data array
+        for i from 0 to numElements:
+            data[i] = output[i]
+
+    // Free memory
+    free(count)
+    free(output)
+end function
+
+
 
