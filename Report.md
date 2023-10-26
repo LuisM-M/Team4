@@ -10,9 +10,11 @@ We will be communicating through Discord and text messaging.
 
 ---
 
-## 2. _due 10/25_ Project topic
+## 2. Project topic: Comparative Analysis of Sorting Algorithms Using MPI and CUDA
 
 ## 2. _due 10/25_ Brief project description (what algorithms will you be comparing and on what architectures)
+Our project aims to compare the performance of various parallel sorting algorithms using two different parallel computing technologies: Message Passing Interface (MPI) and Compute Unified Device Architecture (CUDA). We will be comparing Merge Sort, Quick Sort, and Radix Sort. For Merge Sort and Quick Sort we will be comparing the MPI implementation versus CUDA implementation. For Radix Sort we will be comparing the MPI+CUDA implementation to the CUDA implementation.
+
 
 Merge Sort (MPI) *****************************************
 1. Generate and populate an array with random numbers.
@@ -140,32 +142,31 @@ Quicksort (MPI)
 https://www.geeksforgeeks.org/implementation-of-quick-sort-using-mpi-omp-and-posix-thread/#
 
 function quicksort(arr, start, end)
-// declare pivot and index
-// consider base case if arr has only one element
-// swap pivot with first element (pivot is middle element)
-// set index to start of the arr
-// loop from start+1 to start+end
-    // swap if arr[i] < pivot
-// swap pivot into element at index
-// recursively call sorting function from both sides of the list
+1. declare pivot and index
+2. consider base case if arr has only one element
+3. swap pivot with first element (pivot is middle element)
+4. set index to start of the arr
+5. loop from start+1 to start+end
+    a. swap if arr[i] < pivot
+6. swap pivot into element at index
+7. recursively call sorting function from both sides of the list
 
 
 Quicksort (CUDA)
-// define partitioning function
-// __device__ int partition(int* arr, int left, int right)
-// choose right element as pivot
-// calculate index of left element
-// loop from left to right j=left->right
-    // swap arr[i] and arr[j] if arr[j] < pivot
-// swap pivot element with element at i+1
-// return index of pivot element
+1. define partitioning function
+2. __device__ int partition(int* arr, int left, int right)
+3. choose right element as pivot
+4. calculate index of left element
+5. loop from left to right j=left->right
+    a. swap arr[i] and arr[j] if arr[j] < pivot
+6. return index of pivot element
 
 
-// define cudaQuicksort function
-// void cudaQuicksort(int* arr, int size)
-// declare device array
-// launch quicksort kernel on device array
-// launch quicksort kernel on device
-// cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
-// cudaFree(device array)
+7. define cudaQuicksort function
+8. void cudaQuicksort(int* arr, int size)
+9. declare device array
+10. launch quicksort kernel on device array
+11. launch quicksort kernel on device
+12. cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
+13. cudaFree(device array)
 
