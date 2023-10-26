@@ -79,6 +79,7 @@ end function
 For RadixSortCUDA function we plan to implement Radix Sort much like this reference from Geeks2Geeks https://www.geeksforgeeks.org/radix-sort/#:
 
 function RadixSort(data, numElements):
+
     // Find the maximum value in the data to determine the number of digits
     maxVal = findMaxValue(data)
     numDigits = countDigits(maxVal)
@@ -135,35 +136,36 @@ function ParallelRadixSort(data, numElements):
 
 end function
 
-Quicksort (MPI) ****************************************************************************
-Rerefences: https://www.geeksforgeeks.org/implementation-of-quick-sort-using-mpi-omp-and-posix-thread/#
+Quicksort (MPI)
+https://www.geeksforgeeks.org/implementation-of-quick-sort-using-mpi-omp-and-posix-thread/#
 
 function quicksort(arr, start, end)
-   // declare pivot and index
-   // consider base case if arr has only one element
-   // swap pivot with first element (pivot is middle element)
-   // set index to start of the arr
-   // loop from start+1 to start+end
-       // swap if arr[i] < pivot
-   // swap pivot into element at index
-   // recursively call sorting function from both sides of the list
+// declare pivot and index
+// consider base case if arr has only one element
+// swap pivot with first element (pivot is middle element)
+// set index to start of the arr
+// loop from start+1 to start+end
+    // swap if arr[i] < pivot
+// swap pivot into element at index
+// recursively call sorting function from both sides of the list
 
 
 Quicksort (CUDA)
 // define partitioning function
-_device_ int partition(int* arr, int left, int right)
-   // choose right element as pivot
-   // calculate index of left element
-   // loop from left to right j=left->right
-       // swap arr[i] and arr[j] if arr[j] < pivot
-   // swap pivot element with element at i+1
-   // return index of pivot element
+// __device__ int partition(int* arr, int left, int right)
+// choose right element as pivot
+// calculate index of left element
+// loop from left to right j=left->right
+    // swap arr[i] and arr[j] if arr[j] < pivot
+// swap pivot element with element at i+1
+// return index of pivot element
 
 
 // define cudaQuicksort function
-void cudaQuicksort(int* arr, int size)
-   // declare device array
-   // launch quicksort kernel on device array
-   // launch quicksort kernel on device
-   // cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
-   // cudaFree(device array)
+// void cudaQuicksort(int* arr, int size)
+// declare device array
+// launch quicksort kernel on device array
+// launch quicksort kernel on device
+// cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
+// cudaFree(device array)
+
