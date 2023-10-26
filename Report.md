@@ -135,30 +135,35 @@ function ParallelRadixSort(data, numElements):
 
 end function
 
+Quicksort (MPI) ****************************************************************************
+https://www.geeksforgeeks.org/implementation-of-quick-sort-using-mpi-omp-and-posix-thread/#
+
 function quicksort(arr, start, end)
-    // Declare pivot and index
-    // Consider the base case if arr has only one element
-    // Swap pivot with the first element (pivot is the middle element)
-    // Set index to the start of the arr
-    // Loop from start+1 to start+end
-        // Swap if arr[i] < pivot
-    // Swap pivot into the element at index
-    // Recursively call the sorting function from both sides of the list
+// declare pivot and index
+// consider base case if arr has only one element
+// swap pivot with first element (pivot is middle element)
+// set index to start of the arr
+// loop from start+1 to start+end
+    // swap if arr[i] < pivot
+// swap pivot into element at index
+// recursively call sorting function from both sides of the list
+
 
 Quicksort (CUDA)
-// Define the partitioning function
-__device__ int partition(int* arr, int left, int right)
-    // Choose the right element as the pivot
-    // Calculate the index of the left element
-    // Loop from left to right (j=left->right)
-        // Swap arr[i] and arr[j] if arr[j] < pivot
-    // Swap the pivot element with the element at i+1
-    // Return the index of the pivot element
+// define partitioning function
+// __device__ int partition(int* arr, int left, int right)
+// choose right element as pivot
+// calculate index of left element
+// loop from left to right j=left->right
+    // swap arr[i] and arr[j] if arr[j] < pivot
+// swap pivot element with element at i+1
+// return index of pivot element
 
-// Define the cudaQuicksort function
-void cudaQuicksort(int* arr, int size)
-    // Declare a device array
-    // Launch the quicksort kernel on the device array
-    // Launch the quicksort kernel on the device
-    // Copy the results from the device array to the host (cudaMemcpy)
-    // Free the device array
+
+// define cudaQuicksort function
+// void cudaQuicksort(int* arr, int size)
+// declare device array
+// launch quicksort kernel on device array
+// launch quicksort kernel on device
+// cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
+// cudaFree(device array)
