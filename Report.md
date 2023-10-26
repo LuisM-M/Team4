@@ -117,6 +117,22 @@ function RadixSort(data, numElements):
     // Free memory
     free(count)
     free(output)
+
+Radix Sort (MPI+CUDA): ****************************************************************************
+
+function ParallelRadixSort(data, numElements):
+   1. Get the rank and number of processes
+   2. Calculate the size of local data
+   3. Allocate memory for local data
+   4. Distribute data among processes
+   5. Initialize CUDA for the current process
+   6. Perform one pass for each bit (for loop)
+      a. Sort local data using CUDA
+      b. Synchronize CUDA threads
+      c. Exchange data among processes
+   7. Use a for loop to output sorted data on each process
+   8. Cleanup by freeing memory
+
 end function
 
 
