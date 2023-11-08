@@ -6,6 +6,7 @@
 #include <ctime>
 #include <unistd.h>
 
+int array_with_values[5] = {10, 9, 39, 2, 74, 833, 903, 81};
 // Function to swap two numbers
 void swap(int* arr, int i, int j) {
     int t = arr[i];
@@ -76,7 +77,6 @@ int main(int argc, char* argv[]) {
 
     int number_of_elements;
     int number_of_process, rank_of_process;
-    double time_taken;
 
 	// WHOLE PROGRAM COMPUTATION PART STARTS HERE
 	CALI_MARK_BEGIN(whole_computation);
@@ -111,7 +111,8 @@ int main(int argc, char* argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
     time_taken = -MPI_Wtime();
-	commTime = MPI_Wtime();
+	// COMM PROGRAM COMPUTATION PART STARTS HERE
+	start_time_comm = MPI_Wtime();
     CALI_MARK_BEGIN("commTime");
     MPI_Bcast(&number_of_elements, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
@@ -121,6 +122,9 @@ int main(int argc, char* argv[]) {
     MPI_Scatter(data, chunk_size, MPI_INT, chunk, chunk_size, MPI_INT, 0, MPI_COMM_WORLD);
     delete[] data;
     data = nullptr;
+	// COMM PROGRAM COMPUTATION PART ENDS HERE
+	CALI_MARK_END("commTime");
+	end_time_comm = MPI_Wtime();
 
     int own_chunk_size = (number_of_elements >= chunk_size * (rank_of_process + 1))
                              ? chunk_size
@@ -152,6 +156,9 @@ int main(int argc, char* argv[]) {
 	CALI_MARK_END(whole_computation);
 	end_time_whole = MPI_Wtime();
 
+	double total_elapsed = end_time_whole - start_time_whole;
+	double comm_elapsed = end_time_comm - start_time_comm;
+
     adiak::init(NULL);
 	adiak::launchdate();    // launch date of the job
 	adiak::libraries();     // Libraries used
@@ -166,8 +173,8 @@ int main(int argc, char* argv[]) {
 	adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
 	adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
 	adiak::value("num_blocks", num_blocks); // The number of CUDA blocks 
-	adiak::value("group_num", group_number); // The number of your group (integer, e.g., 1, 10)
-	adiak::value("implementation_source", implementation_source) // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
+	adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
+	adiak::value("implementation_source", AI) // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
 
 	// Flush Caliper output before finalizing MPI
 	mgr.stop();
