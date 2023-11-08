@@ -44,23 +44,23 @@ float random_float()
   return (float)rand()/(float)RAND_MAX;
 }
 
-void array_print(float *arr, int length) 
-{
-  int i;
-  for (i = 0; i < length; ++i) {
-    printf("%1.3f ",  arr[i]);
-  }
-  printf("\n");
-}
+// void array_print(float *arr, int length) 
+// {
+//   int i;
+//   for (i = 0; i < length; ++i) {
+//     printf("%1.3f ",  arr[i]);
+//   }
+//   printf("\n");
+// }
 
-void array_fill(float *arr, int length)
-{
-  srand(time(NULL));
-  int i;
-  for (i = 0; i < length; ++i) {
-    arr[i] = random_float();
-  }
-}
+// void array_fill(float *arr, int length)
+// {
+//   srand(time(NULL));
+//   int i;
+//   for (i = 0; i < length; ++i) {
+//     arr[i] = random_float();
+//   }
+// }
 
 __global__ void bitonic_sort_step(float *dev_values, int j, int k)
 {
@@ -211,10 +211,10 @@ int main(int argc, char *argv[])
   //float bitonic_sort_step_time;
   //float cudaMemcpy_host_to_device_time;
  // float cudaMemcpy_device_to_host_time;
-  printf("Elapsed time (cudaMemcpy host to device ):  %f\n", cudaMemcpy_host_to_device_time/1000);
-  printf("Elapsed time (cudaMemcpy device to host ):  %f\n", cudaMemcpy_device_to_host_time/1000);
-  printf("Elapsed time (bitonic_sort): %f\n", bitonic_sort_step_time/1000);
-  printf("Calculated bandwidth):  %f\n", effective_bandwidth_gb_s );
+  // printf("Elapsed time (cudaMemcpy host to device ):  %f\n", cudaMemcpy_host_to_device_time/1000);
+  // printf("Elapsed time (cudaMemcpy device to host ):  %f\n", cudaMemcpy_device_to_host_time/1000);
+  // printf("Elapsed time (bitonic_sort): %f\n", bitonic_sort_step_time/1000);
+  // printf("Calculated bandwidth):  %f\n", effective_bandwidth_gb_s );
 
   adiak::init(NULL);
   adiak::user();
@@ -222,15 +222,22 @@ int main(int argc, char *argv[])
   adiak::libraries();
   adiak::cmdline();
   adiak::clustername();
+  adiak::value("Algorithm", "BitonicSort");
+  adiak::value("ProgrammingModel", "CUDA");
+  adiak::value("Datatype", "float");
+  adiak::value("SizeOfDatatype", sizeof(float));
+  // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
   adiak::value("num_threads", THREADS);
   adiak::value("num_blocks", BLOCKS);
   adiak::value("num_vals", NUM_VALS);
-  adiak::value("program_name", "cuda_bitonic_sort");
-  adiak::value("datatype_size", sizeof(float));
-  adiak::value("effective_bandwidth (GB/s)", effective_bandwidth_gb_s);
-  adiak::value("bitonic_sort_step_time", bitonic_sort_step_time);
-  adiak::value("cudaMemcpy_host_to_device_time", cudaMemcpy_host_to_device_time);
-  adiak::value("cudaMemcpy_device_to_host_time", cudaMemcpy_device_to_host_time);
+  adiak::value("group_num", "4");
+  adiak::value("implementation_source", "Handwritten"); 
+  // adiak::value("effective_bandwidth (GB/s)", effective_bandwidth_gb_s);
+
+  // adiak::value("bitonic_sort_step_time", bitonic_sort_step_time);
+
+  // adiak::value("cudaMemcpy_host_to_device_time", cudaMemcpy_host_to_device_time);
+  // adiak::value("cudaMemcpy_device_to_host_time", cudaMemcpy_device_to_host_time);
 
   // Flush Caliper output before finalizing MPI
   mgr.stop();
