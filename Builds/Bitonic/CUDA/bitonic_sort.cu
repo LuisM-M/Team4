@@ -176,6 +176,9 @@ void bitonic_sort(float *values)
 
 int main(int argc, char *argv[])
 {
+  CALI_CXX_MARK_FUNCTION;
+  cali::ConfigManager mgr;
+  mgr.start();
   THREADS = atoi(argv[1]);
   NUM_VALS = atoi(argv[2]);
   BLOCKS = NUM_VALS / THREADS;
