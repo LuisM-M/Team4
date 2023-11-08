@@ -6,7 +6,7 @@
 #include <ctime>
 #include <unistd.h>
 
-int array_with_values[5] = {10, 9, 39, 2, 74, 833, 903, 81};
+int array_with_values[8] = {10, 9, 39, 2, 74, 833, 903, 81};
 // Function to swap two numbers
 void swap(int* arr, int i, int j) {
     int t = arr[i];
