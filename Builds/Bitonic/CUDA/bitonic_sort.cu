@@ -39,30 +39,30 @@ void print_elapsed(clock_t start, clock_t stop)
   printf("Elapsed time: %.3fs\n", elapsed);
 }
 
-float random_float()
+int random_int()
 {
-  return (float)rand()/(float)RAND_MAX;
+  return (int)rand()/(int)RAND_MAX;
 }
 
-// void array_print(float *arr, int length) 
-// {
-//   int i;
-//   for (i = 0; i < length; ++i) {
-//     printf("%1.3f ",  arr[i]);
-//   }
-//   printf("\n");
-// }
+void array_print(int *arr, int length) 
+{
+  int i;
+  for (i = 0; i < length; ++i) {
+    printf("%1.3f ",  arr[i]);
+  }
+  printf("\n");
+}
 
-// void array_fill(float *arr, int length)
-// {
-//   srand(time(NULL));
-//   int i;
-//   for (i = 0; i < length; ++i) {
-//     arr[i] = random_float();
-//   }
-// }
+void array_fill(int *arr, int length)
+{
+  srand(time(NULL));
+  int i;
+  for (i = 0; i < length; ++i) {
+    arr[i] = random_int();
+  }
+}
 
-__global__ void bitonic_sort_step(float *dev_values, int j, int k)
+__global__ void bitonic_sort_step(int *dev_values, int j, int k)
 {
   unsigned int i, ixj; /* Sorting partners: i and ixj */
   i = threadIdx.x + blockDim.x * blockIdx.x;
@@ -74,7 +74,7 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
       /* Sort ascending */
       if (dev_values[i]>dev_values[ixj]) {
         /* exchange(i,ixj); */
-        float temp = dev_values[i];
+        int temp = dev_values[i];
         dev_values[i] = dev_values[ixj];
         dev_values[ixj] = temp;
       }
@@ -83,7 +83,7 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
       /* Sort descending */
       if (dev_values[i]<dev_values[ixj]) {
         /* exchange(i,ixj); */
-        float temp = dev_values[i];
+        int temp = dev_values[i];
         dev_values[i] = dev_values[ixj];
         dev_values[ixj] = temp;
       }
@@ -94,10 +94,10 @@ __global__ void bitonic_sort_step(float *dev_values, int j, int k)
 /**
  * Inplace bitonic sort using CUDA.
  */
-void bitonic_sort(float *values)
+void bitonic_sort(int *values)
 {
-  float *dev_values;
-  size_t size = NUM_VALS * sizeof(float); 
+  int *dev_values;
+  size_t size = NUM_VALS * sizeof(int); 
   
   cudaEvent_t startEvent1, stopEvent1; //
   cudaEventCreate(&startEvent1); //
@@ -177,8 +177,8 @@ void bitonic_sort(float *values)
 int main(int argc, char *argv[])
 {
   CALI_CXX_MARK_FUNCTION;
-  cali::ConfigManager mgr;
-  mgr.start();
+  // cali::ConfigManager mgr;
+  // mgr.start();
   THREADS = atoi(argv[1]);
   NUM_VALS = atoi(argv[2]);
   BLOCKS = NUM_VALS / THREADS;
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 
   clock_t start, stop;
 
-  float *values = (float*) malloc( NUM_VALS * sizeof(float));
+  int *values = (int*) malloc( NUM_VALS * sizeof(int));
   array_fill(values, NUM_VALS);
 
   start = clock();
@@ -227,22 +227,18 @@ int main(int argc, char *argv[])
   adiak::clustername();
   adiak::value("Algorithm", "BitonicSort");
   adiak::value("ProgrammingModel", "CUDA");
-  adiak::value("Datatype", "float");
-  adiak::value("SizeOfDatatype", sizeof(float));
-  // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+  adiak::value("Datatype", "int");
+  adiak::value("SizeOfDatatype", sizeof(int));
+  adiak::value("InputSize", NUM_VALS); // The number of elements in input dataset (1000)
+  adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+  adiak::value("num_procs", "2"); // The number of processors (MPI ranks)
   adiak::value("num_threads", THREADS);
   adiak::value("num_blocks", BLOCKS);
-  adiak::value("num_vals", NUM_VALS);
   adiak::value("group_num", "4");
   adiak::value("implementation_source", "Handwritten"); 
-  // adiak::value("effective_bandwidth (GB/s)", effective_bandwidth_gb_s);
-
-  // adiak::value("bitonic_sort_step_time", bitonic_sort_step_time);
-
-  // adiak::value("cudaMemcpy_host_to_device_time", cudaMemcpy_host_to_device_time);
-  // adiak::value("cudaMemcpy_device_to_host_time", cudaMemcpy_device_to_host_time);
-
+  
   // Flush Caliper output before finalizing MPI
   mgr.stop();
   mgr.flush();
+
 }
