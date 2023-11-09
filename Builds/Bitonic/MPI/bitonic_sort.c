@@ -5,8 +5,12 @@
 #include "mpi.h"        // MPI Library
 #include <string.h>
 #include <caliper/cali.h>
+#include <caliper/cali-manager.h>
+#include <adiak.hpp>
 
-#define MASTER 0        // Who should do the final processing?
+#define MASTER 0        
+
+// SOURCE: https://github.com/sajid912/MPI-Bitonic-Sort/blob/master/bitonic_sort.c
 
 // Globals
 double timer_start;
@@ -21,6 +25,9 @@ unsigned int Log2n(unsigned int n) {
 }
 
 int main(int argc, char * argv[]) {
+
+    cali::ConfigManager mgr;
+    mgr.start();
     CALI_CXX_MARK_FUNCTION("main");
 
     MPI_Init(&argc, &argv);
@@ -71,6 +78,31 @@ int main(int argc, char * argv[]) {
         CALI_CXX_MARK_END("overall_sort_timer");
         printf("Time Elapsed (Sec): %f\n", timer_end - timer_start);
     }
+
+     // Report values using Adiak
+    adiak::init(NULL);
+    adiak::user();
+    adiak::launchdate();
+    adiak::libraries();
+    adiak::cmdline();
+    adiak::clustername();
+    adiak::value("Algorithm", "BitonicSort");
+    adiak::value("ProgrammingModel", "MPI");
+    adiak::value("Datatype", "int");
+    adiak::value("SizeOfDatatype", sizeof(int));
+    adiak::value("InputSize", array_size); // The number of elements in input dataset (1000)
+    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("num_procs", num_processes); // The number of processors (MPI ranks)
+    // adiak::value("num_threads", THREADS);
+    // adiak::value("num_blocks", BLOCKS);
+    adiak::value("group_num", "4");
+    adiak::value("implementation_source", "Online"); 
+    // Finalize Adiak
+    // adiak::fini();
+
+    // Flush Caliper output before finalizing MPI
+    mgr.stop();
+    mgr.flush();
 
     free(array);
     MPI_Finalize();
