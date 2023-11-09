@@ -1,6 +1,14 @@
 #include <iostream>
 #include <cmath>
 #include <cuda.h>
+#include <cstdlib>
+#include <cstring>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <caliper/cali.h>
+#include <caliper/cali-manager.h>
+#include <adiak.hpp>
 
 // Define constants for array size and threads per block
 const int ARRAY_SIZE = 1 << 20; // Example: 2^20 elements
@@ -89,7 +97,11 @@ void parallelMergeSort(int *data, int arraySize) {
 }
 
 int main() {
+    CALI_CXX_MARK_FUNCTION;
     int *data = new int[ARRAY_SIZE];
+
+    cali::ConfigManager mgr;
+    mgr.start();
 
     // Initialize data to sort (for example, with random numbers)
     for (int i = 0; i < ARRAY_SIZE; ++i) {
@@ -120,12 +132,15 @@ int main() {
     adiak::clustername();
     adiak::value("Algorithm", "Merge Sort");
     adiak::value("ProgrammingModel", "CUDA");
-    adiak::value("Datatype", "float");
-    adiak::value("SizeOfDatatype", sizeof(float));
-    // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+    adiak::value("Datatype", "integer");
+    adiak::value("SizeOfDatatype", sizeof(int));
+    adiak::value("num_procs", num_procs); 
     adiak::value("num_threads", THREADS);
     adiak::value("num_blocks", BLOCKS);
     adiak::value("num_vals", NUM_VALS);
     adiak::value("group_num", "4");
     adiak::value("implementation_source", "AI"); 
+    
+    mgr.stop();
+    mgr.flush();
 }

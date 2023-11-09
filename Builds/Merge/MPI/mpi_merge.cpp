@@ -1,123 +1,136 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 #include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <caliper/cali.h>
+#include <caliper/cali-manager.h>
+#include <adiak.hpp>
 
 
-// Sources: geeksforgeeks.org/merge-sort
+// Sources: geeksforgeeks.org/merge-sort, https://selkie-macalester.org/csinparallel/modules/MPIProgramming/build/html/mergeSort/mergeSort.html
+int* mergeSort(int height, int id, int localArray[], int size, MPI_Comm comm, int globalArray[]){
+    int parent, rightChild, myHeight;
+    int *half1, *half2, *mergeResult;
 
-// Function to merge two sorted subarrays
-void Merge(int* array, int left, int middle, int right) {
-    int n1 = middle - left + 1;
-    int n2 = right - middle;
+    myHeight = 0;
+    qsort(localArray, size, sizeof(int), compare); // sort local array
+    half1 = localArray;  // assign half1 to localArray
+	
+    while (myHeight < height) { // not yet at top
+        parent = (id & (~(1 << myHeight)));
 
-    int* L = new int[n1];
-    int* R = new int[n2];
+        if (parent == id) { // left child
+		    rightChild = (id | (1 << myHeight));
 
-    for (int i = 0; i < n1; i++) {
-        L[i] = array[left + i];
-    }
-    for (int i = 0; i < n2; i++) {
-        R[i] = array[middle + 1 + i];
-    }
+  		    // allocate memory and receive array of right child
+  		    half2 = (int*) malloc (size * sizeof(int));
+  		    MPI_Recv(half2, size, MPI_INT, rightChild, 0,
+				MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-    int i = 0;
-    int j = 0;
-    int k = left;
+  		    // allocate memory for result of merge
+  		    mergeResult = (int*) malloc (size * 2 * sizeof(int));
+  		    // merge half1 and half2 into mergeResult
+  		    mergeResult = merge(half1, half2, mergeResult, size);
+  		    // reassign half1 to merge result
+            half1 = mergeResult;
+			size = size * 2;  // double size
+			
+			free(half2); 
+			mergeResult = NULL;
 
-    while (i < n1 && j < n2) {
-        if (L[i] <= R[j]) {
-            array[k] = L[i];
-            i++;
-        } else {
-            array[k] = R[j];
-            j++;
+            myHeight++;
+
+        } else { // right child
+			  // send local array to parent
+              MPI_Send(half1, size, MPI_INT, parent, 0, MPI_COMM_WORLD);
+              if(myHeight != 0) free(half1);  
+              myHeight = height;
         }
-        k++;
     }
 
-    while (i < n1) {
-        array[k] = L[i];
-        i++;
-        k++;
-    }
-
-    while (j < n2) {
-        array[k] = R[j];
-        j++;
-        k++;
-    }
-
-    delete[] L;
-    delete[] R;
+    if(id == 0){
+		globalArray = half1;   // reassign globalArray to half1
+	}
+	return globalArray;
 }
 
-// Traditional MergeSort algorithm
-void MergeSort(int* array, int left, int right) {
-    if (left < right) {
-        int middle = left + (right - left) / 2;
-        MergeSort(array, left, middle);
-        MergeSort(array, middle + 1, right);
-        Merge(array, left, middle, right);
-    }
-}
-
-// Function to merge all sorted subarrays collected at the root
-int* MergeAllSortedSubArrays(int* sortedSubArrays, int numberOfSubArrays, int subArraySize) {
-    // Sequential merge for simplicity
-    int* mergedArray = new int[numberOfSubArrays * subArraySize];
-    std::memcpy(mergedArray, sortedSubArrays, subArraySize * sizeof(int));
-
-    for (int i = 1; i < numberOfSubArrays; i++) {
-        Merge(mergedArray, 0, i * subArraySize - 1, (i + 1) * subArraySize - 1);
-    }
-
-    return mergedArray;
-}
 
 int main(int argc, char** argv) {
     CALI_CXX_MARK_FUNCTION;
-    int rank, size;
+
+    int numProcs, id, globalArraySize, localArraySize, height;
+    int *localArray, *globalArray;
+    double startTime, localTime, totalTime;
+    double zeroStartTime, zeroTotalTime, processStartTime, processTotalTime;;
+    int length = -1;
+    char myHostName[MPI_MAX_PROCESSOR_NAME];
+
     MPI_Init(&argc, &argv);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+    MPI_Comm_rank(MPI_COMM_WORLD, &id);
 
-    int dataSize = ...; // Set the size of the data to sort
-    int* data = new int[dataSize]; // Initialize and populate data
+    MPI_Get_processor_name (myHostName, &length); 
 
-    int subArraySize = dataSize / size;
-    int* subArray = new int[subArraySize];
+    // check for odd processes
+    powerOfTwo(id, numProcs);
 
-    MPI_Scatter(data, subArraySize, MPI_INT, subArray, subArraySize, MPI_INT, 0, MPI_COMM_WORLD);
+    // get size of global array
+    getInput(argc, argv, id, numProcs, &globalArraySize);
 
-    // Perform the local sort
-    MergeSort(subArray, 0, subArraySize - 1);
+    // calculate total height of tree
+    height = log2(numProcs);
 
-    int* sortedSubArrays = nullptr;
-    if (rank == 0) {
-        sortedSubArrays = new int[dataSize];
-    }
+    // if process 0, allocate memory for global array and fill with values
+    if (id==0){
+		globalArray = (int*) malloc (globalArraySize * sizeof(int));
+		fillArray(globalArray, globalArraySize, id);
+		//printList(id, "UNSORTED ARRAY", globalArray, globalArraySize);  // Line A
+	}
+	
+    // allocate memory for local array, scatter to fill with values and print
+    localArraySize = globalArraySize / numProcs;
+    localArray = (int*) malloc (localArraySize * sizeof(int));
+    MPI_Scatter(globalArray, localArraySize, MPI_INT, localArray, 
+		localArraySize, MPI_INT, 0, MPI_COMM_WORLD);
+    //printList(id, "localArray", localArray, localArraySize);   // Line B 
+    
+    //Start timing
+    startTime = MPI_Wtime();
+    //Merge sort
+    if (id == 0) {
+		zeroStartTime = MPI_Wtime();
+		globalArray = mergeSort(height, id, localArray, localArraySize, MPI_COMM_WORLD, globalArray);
+		zeroTotalTime = MPI_Wtime() - zeroStartTime;
+		printf("Process #%d of %d on %s took %f seconds \n", 
+			id, numProcs, myHostName, zeroTotalTime);
+	}
+	else {
+		processStartTime = MPI_Wtime();
+	        mergeSort(height, id, localArray, localArraySize, MPI_COMM_WORLD, NULL);
+		processTotalTime = MPI_Wtime() - processStartTime;
+		printf("Process #%d of %d on %s took %f seconds \n", 
+			id, numProcs, myHostName, processTotalTime);
+	}
+    //End timing
+    localTime = MPI_Wtime() - startTime;
+    MPI_Reduce(&localTime, &totalTime, 1, MPI_DOUBLE,
+        MPI_MAX, 0, MPI_COMM_WORLD);
 
-    MPI_Gather(subArray, subArraySize, MPI_INT, sortedSubArrays, subArraySize, MPI_INT, 0, MPI_COMM_WORLD);
+    if (id == 0) {
+		//printList(0, "FINAL SORTED ARRAY", globalArray, globalArraySize);  // Line C
+		printf("Sorting %d integers took %f seconds \n", globalArraySize,totalTime);
+		free(globalArray);
+	}
 
-    int* sortedData = nullptr;
-    if (rank == 0) {
-        sortedData = MergeAllSortedSubArrays(sortedSubArrays, size, subArraySize);
-        delete[] sortedSubArrays;
-    }
+    free(localArray);  
 
-    delete[] subArray;
 
-    if (rank == 0) {
-        // Do something with the sorted data in the root process
-        delete[] sortedData;
-    }
-
-    delete[] data;
-
-    MPI_Finalize();
-    return 0;
-
+    cali::ConfigManager mgr;
+	mgr.start();
 
     adiak::init(NULL);
     adiak::user();
@@ -127,12 +140,20 @@ int main(int argc, char** argv) {
     adiak::clustername();
     adiak::value("Algorithm", "Merge Sort");
     adiak::value("ProgrammingModel", "MPI");
-    adiak::value("Datatype", "float");
-    adiak::value("SizeOfDatatype", sizeof(float));
-    // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+    adiak::value("Datatype", "integer");
+    adiak::value("SizeOfDatatype", sizeof(int));
+    adiak::value("num_procs", num_procs);
     adiak::value("num_threads", THREADS);
     adiak::value("num_blocks", BLOCKS);
     adiak::value("num_vals", NUM_VALS);
     adiak::value("group_num", "4");
-    adiak::value("implementation_source", "AI"); 
+    adiak::value("implementation_source", "Online"); 
+
+
+    mgr.stop();
+   	mgr.flush();
+
+    MPI_Finalize();
+    return 0;
+
 }
