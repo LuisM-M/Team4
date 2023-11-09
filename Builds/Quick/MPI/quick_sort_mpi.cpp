@@ -4,14 +4,14 @@
  */
 
 #include <mpi.h>
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <ctime>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
-
-int array_with_values[8] = {10, 9, 39, 2, 74, 833, 903, 81};
-const char* whole_computation = "whole_computation";
+#include <sys/time.h>
+#include <adiak.hpp>
+#include <caliper/cali.h>
+#include <caliper/cali-manager.h>
 
 // Function to swap two numbers
 void swap(int* arr, int i, int j) {
@@ -20,49 +20,25 @@ void swap(int* arr, int i, int j) {
     arr[j] = t;
 }
 
-// Function that performs the Quick Sort
-void quicksort(int* arr, int start, int end) {
-    if (end <= 1)
-        return;
-
-    // Pick pivot and swap with first element
-    int pivot = arr[start + end / 2];
-    swap(arr, start, start + end / 2);
-
-    // Partitioning Steps
-    int index = start;
-    for (int i = start + 1; i < start + end; i++) {
-        if (arr[i] < pivot) {
-            index++;
-            swap(arr, i, index);
+int partition(int* arr, int low, int high) {
+    int pivot = arr[high];
+    int i = (low - 1);
+    for (int j = low; j <= high - 1; j++) {
+        if (arr[j] < pivot) {
+            i++;
+            swap(&arr[i], &arr[j]);
         }
     }
-
-    // Swap the pivot into place
-    swap(arr, start, index);
-
-    // Recursive Call for sorting
-    quicksort(arr, start, index - start);
-    quicksort(arr, index + 1, start + end - index - 1);
+    swap(&arr[i + 1], &arr[high]);
+    return (i + 1);
 }
 
-// Function that merges the two arrays
-int* merge(int* arr1, int n1, int* arr2, int n2) {
-    int* result = new int[n1 + n2];
-    int i = 0, j = 0, k = 0;
-
-    while (i < n1 || j < n2) {
-        if (i == n1) {
-            result[k++] = arr2[j++];
-        } else if (j == n2) {
-            result[k++] = arr1[i++];
-        } else if (arr1[i] < arr2[j]) {
-            result[k++] = arr1[i++];
-        } else {
-            result[k++] = arr2[j++];
-        }
+void quicksort(int* arr, int low, int high) {
+    if (low < high) {
+        int pi = partition(arr, low, high);
+        quicksort(arr, low, pi - 1);
+        quicksort(arr, pi + 1, high);
     }
-    return result;
 }
 
 // Check for correctness
@@ -78,90 +54,66 @@ bool isSorted(int *array, int size) {
 // Driver Code
 int main(int argc, char* argv[]) {
 	CALI_CXX_MARK_FUNCTION;
+    cali::ConfigManager mgr;
+    mgr.start();
+    double startTotalTime, endTotalTime;
+    double startCommTime, endCommTime;
+    startTotalTime = MPI_Wtime();
+    CALI_MARK_BEGIN("totalTime")
     MPI_Init(&argc, &argv);
-    int number_of_elements;
-    int number_of_process, rank_of_process;
 
-	// WHOLE PROGRAM COMPUTATION PART STARTS HERE
-	CALI_MARK_BEGIN(whole_computation);
-	double start_time_whole = MPI_Wtime();
-    MPI_Comm_size(MPI_COMM_WORLD, &number_of_process);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank_of_process);
+    int rank, size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int* data = nullptr;
+    int n = atoi(argv[1]); // Size of the array
+    int* sub_array = (int*)malloc((n / size) * sizeof(int));
+    int* sorted = NULL;
+    int* array = NULL;
 
-    if (rank_of_process == 0) {
-        if (argc != 3) {
-            std::cerr << "Usage: " << argv[0] << " <inputfile> <outputfile>\n";
-            MPI_Abort(MPI_COMM_WORLD, 1);
+    if (rank == 0) {
+        array = (int*)malloc(n * sizeof(int));
+        // Initialize the array with random data
+        for (int i = 0; i < n; i++) {
+            array[i] = rand() % 100; // Random numbers between 0 and 99
         }
-
-        std::ifstream file(argv[1]);
-        if (!file.is_open()) {
-            std::cerr << "Error in opening file\n";
-            MPI_Abort(MPI_COMM_WORLD, 1);
-        }
-
-        file >> number_of_elements;
-        int chunk_size = (number_of_elements + number_of_process - 1) / number_of_process;
-
-        data = new int[number_of_process * chunk_size]();
-        for (int i = 0; i < number_of_elements; ++i) {
-            file >> data[i];
-        }
-
-        file.close();
+        sorted = (int*)malloc(n * sizeof(int));
     }
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    time_taken = -MPI_Wtime();
-	// COMM PROGRAM COMPUTATION PART STARTS HERE
-	start_time_comm = MPI_Wtime();
+    // start communication computation
     CALI_MARK_BEGIN("commTime");
-    MPI_Bcast(&number_of_elements, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    startCommTime = MPI_Wtime();
+    // Scatter the array to all processes
+    MPI_Scatter(array, n / size, MPI_INT, sub_array, n / size, MPI_INT, 0, MPI_COMM_WORLD);
 
-    int chunk_size = (number_of_elements + number_of_process - 1) / number_of_process;
-    int* chunk = new int[chunk_size];
+    quicksort(sub_array, 0, (n / size) - 1);
 
-    MPI_Scatter(data, chunk_size, MPI_INT, chunk, chunk_size, MPI_INT, 0, MPI_COMM_WORLD);
-    delete[] data;
-    data = nullptr;
-	// COMM PROGRAM COMPUTATION PART ENDS HERE
-	CALI_MARK_END("commTime");
-	end_time_comm = MPI_Wtime();
-
-    int own_chunk_size = (number_of_elements >= chunk_size * (rank_of_process + 1))
-                             ? chunk_size
-                             : (number_of_elements - chunk_size * rank_of_process);
-
-    quicksort(chunk, 0, own_chunk_size);
-
-    for (int step = 1; step < number_of_process; step *= 2) {
-        if (rank_of_process % (2 * step) != 0) {
-            MPI_Send(chunk, own_chunk_size, MPI_INT, rank_of_process - step, 0, MPI_COMM_WORLD);
-            break;
+    // Gather the sorted sub_arrays back to the root process
+    MPI_Gather(sub_array, n / size, MPI_INT, sorted, n / size, MPI_INT, 0, MPI_COMM_WORLD);
+    // end communication computation
+    CALI_MARK_END("commTime");
+    double endCommTime = MPI_Wtime();
+    if (rank == 0) {
+        if (isSorted(sorted, n)) {
+            printf("The array is correctly sorted.\n");
+        } else {
+            printf("The array is NOT correctly sorted.\n");
         }
-        if (rank_of_process + step < number_of_process) {
-            int received_chunk_size = (number_of_elements >= chunk_size * (rank_of_process + 2 * step))
-                                          ? (chunk_size * step)
-                                          : (number_of_elements - chunk_size * (rank_of_process + step));
-
-            int* chunk_received = new int[received_chunk_size];
-            MPI_Recv(chunk_received, received_chunk_size, MPI_INT, rank_of_process + step, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-            int* temp = merge(chunk, own_chunk_size, chunk_received, received_chunk_size);
-            delete[] chunk;
-            delete[] chunk_received;
-            chunk = temp;
-            own_chunk_size += received_chunk_size;
-        }
+        free(array);
+        free(sorted);
     }
-	// WHOLE PROGRAM COMPUTATION PART ENDS HERE
-	CALI_MARK_END(whole_computation);
-	end_time_whole = MPI_Wtime();
 
-	double total_elapsed = end_time_whole - start_time_whole;
-	double comm_elapsed = end_time_comm - start_time_comm;
+    free(sub_array);
+	// WHOLE PROGRAM COMPUTATION PART ENDS HERE
+	CALI_MARK_END(totalTime);
+	endTotalTime = MPI_Wtime();
+
+	double total_elapsed = endTotalTime - startTotalTime;
+	double comm_elapsed = endCommTime - startCommTime;
+
+    if (rank == 0) {
+        printf("Whole computation time: %f seconds\n", total_elapsed);
+        printf("Communication time: %f seconds\n", comm_elapsed);
+    }
 
     adiak::init(NULL);
 	adiak::launchdate();    // launch date of the job
@@ -173,10 +125,10 @@ int main(int argc, char* argv[]) {
 	adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
 	adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
 	adiak::value("InputSize", inputSize); // The number of elements in input dataset (1000)
-	adiak::value("InputType", sorted); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
-	adiak::value("num_procs", 2); // The number of processors (MPI ranks)
-	adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
-	adiak::value("num_blocks", num_blocks); // The number of CUDA blocks 
+	adiak::value("InputType", "random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+	adiak::value("num_procs", 4); // The number of processors (MPI ranks)
+	//adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
+	//adiak::value("num_blocks", num_blocks); // The number of CUDA blocks 
 	adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
 	adiak::value("implementation_source", AI) // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
 
@@ -185,4 +137,5 @@ int main(int argc, char* argv[]) {
 	mgr.flush();
 
 	MPI_Finalize();
+    return 0;
 }
