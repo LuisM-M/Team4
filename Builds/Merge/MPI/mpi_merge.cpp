@@ -117,4 +117,22 @@ int main(int argc, char** argv) {
 
     MPI_Finalize();
     return 0;
+
+
+    adiak::init(NULL);
+    adiak::user();
+    adiak::launchdate();
+    adiak::libraries();
+    adiak::cmdline();
+    adiak::clustername();
+    adiak::value("Algorithm", "Merge Sort");
+    adiak::value("ProgrammingModel", "MPI");
+    adiak::value("Datatype", "float");
+    adiak::value("SizeOfDatatype", sizeof(float));
+    // adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+    adiak::value("num_threads", THREADS);
+    adiak::value("num_blocks", BLOCKS);
+    adiak::value("num_vals", NUM_VALS);
+    adiak::value("group_num", "4");
+    adiak::value("implementation_source", "AI"); 
 }
