@@ -13,7 +13,7 @@ We will be communicating through Discord and text messaging.
 ## 2. Project topic: Comparative Analysis of Sorting Algorithms Using MPI and CUDA
 
 ## 3. _due 10/25_ Brief project description (what algorithms will you be comparing and on what architectures)
-Our project aims to compare the performance of various parallel sorting algorithms using two different parallel computing technologies: Message Passing Interface (MPI) and Compute Unified Device Architecture (CUDA). We will be comparing Merge Sort, Quick Sort, and Radix Sort. For Merge Sort and Quick Sort we will be comparing the MPI implementation versus CUDA implementation. For Radix Sort we will be comparing the MPI+CUDA implementation to the CUDA implementation.
+Our project aims to compare the performance of various parallel sorting algorithms using two different parallel computing technologies: Message Passing Interface (MPI) and Compute Unified Device Architecture (CUDA). We will be comparing Merge Sort, Quick Sort, Radix Sort, & Bitonic Sort. For Merge Sort and Quick Sort we will be comparing the MPI implementation versus CUDA implementation. For Radix Sort we will be comparing the MPI implementation to the CUDA implementation. For Bitonic Sort we will be comparing the implementation to the CUDA implementation.
 
 
 Merge Sort (MPI) *****************************************
@@ -121,22 +121,25 @@ function RadixSort(data, numElements):
     free(count)
     free(output)
 
-Radix Sort (MPI+CUDA): ****************************************************************************
+Radix Sort (MPI): ****************************************************************************
 
-function ParallelRadixSort(data, numElements):
-   1. Get the rank and number of processes
-   2. Calculate the size of local data
-   3. Allocate memory for local data
-   4. Distribute data among processes
-   5. Initialize CUDA for the current process
-   6. Perform one pass for each bit (for loop)
-      a. Sort local data using CUDA
-      b. Synchronize CUDA threads
-      c. Exchange data among processes
-   7. Use a for loop to output sorted data on each process
-   8. Cleanup by freeing memory
+Initialize MPI environment.
 
-end function
+Each process receives a chunk of the unsorted array.
+
+In parallel, each process performs Radix Sort on its local chunk.
+
+For each digit (starting from the least significant digit):
+    Each process counts the occurrences of each digit within its chunk.
+    All processes participate in a collective communication to determine the global count for each    digit.
+    Each process determines the target process for each element based on the global digit counts and sends the elements to the respective processes.
+
+After all digits have been processed, each process has a portion of the globally sorted array.
+
+If necessary, merge the sorted chunks from each process to form the fully sorted array.
+
+Finalize MPI environment.
+
 
 Quicksort (MPI)
 https://www.geeksforgeeks.org/implementation-of-quick-sort-using-mpi-omp-and-posix-thread/#
@@ -169,4 +172,78 @@ Quicksort (CUDA)
 11. launch quicksort kernel on device
 12. cudaMemcpy(arr, device array,..,cudaMemcyDeviceToHost)
 13. cudaFree(device array)
+
+**************************************************************************************************
+Bitonic Sort (MPI)
+function bitonicSort(up, sequence)
+  if length(sequence) > 1 then
+    firstHalf = first half of sequence
+    secondHalf = second half of sequence
+
+    bitonicSort(true, firstHalf)  // sort in ascending order
+    bitonicSort(false, secondHalf) // sort in descending order
+
+    bitonicMerge(up, sequence) // merge whole sequence in ascending or descending order
+
+function bitonicMerge(up, sequence)
+  if length(sequence) > 1 then
+    // bitonic split
+    compareAndSwap(up, sequence)
+
+    firstHalf = first half of sequence
+    secondHalf = second half of sequence
+
+    bitonicMerge(up, firstHalf)
+    bitonicMerge(up, secondHalf)
+
+function compareAndSwap(up, sequence)
+  distance = length(sequence) / 2
+  for i = 0 to distance - 1 do
+    if (up and sequence[i] > sequence[i + distance]) or (!up and sequence[i] < sequence[i + distance]) then
+      swap(sequence[i], sequence[i + distance])
+
+// To sort a sequence in ascending order using bitonic sort:
+bitonicSort(true, sequence)
+
+**************************************************************************************************
+Bitonic Sort (CUDA)
+
+Set number of threads, blocks, and number of values to sort
+
+Allocate memory for values on the host
+Fill the host memory with random floating-point numbers
+
+Allocate memory on the device (GPU) for sorting
+
+Copy the unsorted values from host to device memory
+
+For each stage of the bitonic sequence:
+  For each step of the current stage:
+    Launch the bitonic sort kernel with the current step and stage parameters
+    The kernel will compare and swap elements to achieve the bitonic sequence
+
+Wait for GPU to finish sorting
+
+Copy the sorted values from device back to host memory
+
+Free the device memory
+
+Print the sorted values (if needed)
+
+
+
+
+## 2c. Evaluation plan - what and how you will measure and compare
+Regarding input types, one will be an integer value for the size of the array that holds the values to be sorted and the other is the thread count used for the algorithm. Array sizes will be {16, 64, 128, 256, 1024, 2048, 4096} and thread sizes will be  {2, 4, 16, 32, 64, 128, 256, 512}. Each array size will be tested with every thread size. All arrays will be filled with integer values as radix sort is only possible with integers and not floating point numbers. The values for arrays will be randomly generated within the program depending on problem size.
+For strong scaling, each problem size will be tested with the aforementioned increasing amount of thread sizes. For weak scaling, all thread counts will be tested with increasing array problem sizes for sorting. 
+Overall, we will be testing and comparing overall run times with all four algorithms and their subset types. The run times will be compared based on the factors of thread count, algorithm, and problem size. 
+
+
+## 3c. Project Implementation 
+Originally, our plan involved identifying and utilizing sources to implement our algorithms, followed by compiling and executing our code on the Grace platform. We had meticulously conducted our research and prepared pseudocode well in advance. However, as soon as we transitioned from pseudocode to actual code that we could run, Grace underwent an extended maintenance period, preventing us from testing our code and generating calibration files.
+Hypothesis: 
+We estimate that quicksort would have a lower runtime than merge, radix, and bitonic sort because of their overall scaled predicted run times. When comparing, the runtime for parallel implementation of Quick sort (theoretical best) is O(logn/p) where p is the number of parallel processors, but the worst case is O(n^2). The runtime for parallel implementation of Merge sort using cuda is O(nlog(n/p)) where p is the number of processors with a good implementation of parallelized merge sort.
+The time complexity of Radix Sort is O(w*n) for the serial/sequential version, where n is the number of elements needed to be sorted and w is the number of bits required to store each key. Radix Sort works by processing each bit of the numbers to be sorted, which leads to its linear time complexity in the number of bits processed. However, in a parallel CUDA implementation, Radix Sort's time complexity can be significantly reduced by distributing the counting and prefix sum computation across the multiple cores of the GPU. Theoretically, if you have as many processing units as items to be sorted, the time complexity could approach O(w), since you could potentially process each bit of all items simultaneously.
+The Bitonic Sort algorithm has an O(logn) time complexity. However when it comes to the parallelized algorithm implementation with CUDA theoretically should be O(log (n/p)) where p is the number of processors. 
+In conclusion, based on these analytical time complexities when parallelized, it is clear to see why quicksort would be the most optimal. Parallelizing these algorithms as a whole will greatly reduce run times of the algorithms.
 
