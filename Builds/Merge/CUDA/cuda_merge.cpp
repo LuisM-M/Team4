@@ -132,15 +132,15 @@ int main() {
     adiak::clustername();
     adiak::value("Algorithm", "Merge Sort");
     adiak::value("ProgrammingModel", "CUDA");
-    adiak::value("Datatype", "integer");
+    adiak::value("Datatype", "int");
     adiak::value("SizeOfDatatype", sizeof(int));
-    adiak::value("num_procs", num_procs); 
+    adiak::value("num_procs", 2); 
     adiak::value("num_threads", THREADS);
     adiak::value("num_blocks", BLOCKS);
     adiak::value("num_vals", NUM_VALS);
     adiak::value("group_num", "4");
     adiak::value("implementation_source", "AI"); 
-    
+
     mgr.stop();
     mgr.flush();
 }

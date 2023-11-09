@@ -17,7 +17,11 @@ int* mergeSort(int height, int id, int localArray[], int size, MPI_Comm comm, in
     int *half1, *half2, *mergeResult;
 
     myHeight = 0;
+    CALI_MARK_BEGIN(comp);
+	CALI_MARK_BEGIN(compLarge);
     qsort(localArray, size, sizeof(int), compare); // sort local array
+    CALI_MARK_END(compLarge);
+	CALI_MARK_END(comp);
     half1 = localArray;  // assign half1 to localArray
 	
     while (myHeight < height) { // not yet at top
@@ -28,13 +32,21 @@ int* mergeSort(int height, int id, int localArray[], int size, MPI_Comm comm, in
 
   		    // allocate memory and receive array of right child
   		    half2 = (int*) malloc (size * sizeof(int));
+            CALI_MARK_BEGIN(comm);
+			CALI_MARK_BEGIN(commLarge);
   		    MPI_Recv(half2, size, MPI_INT, rightChild, 0,
 				MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            CALI_MARK_END(commLarge);
+			CALI_MARK_END(comm);
 
   		    // allocate memory for result of merge
   		    mergeResult = (int*) malloc (size * 2 * sizeof(int));
   		    // merge half1 and half2 into mergeResult
+            CALI_MARK_BEGIN(comp);
+			CALI_MARK_BEGIN(compLarge);
   		    mergeResult = merge(half1, half2, mergeResult, size);
+            CALI_MARK_END(compLarge);
+			CALI_MARK_END(comp);
   		    // reassign half1 to merge result
             half1 = mergeResult;
 			size = size * 2;  // double size
@@ -46,7 +58,11 @@ int* mergeSort(int height, int id, int localArray[], int size, MPI_Comm comm, in
 
         } else { // right child
 			  // send local array to parent
+              CALI_MARK_BEGIN(comm);
+              CALI_MARK_BEGIN(commLarge);
               MPI_Send(half1, size, MPI_INT, parent, 0, MPI_COMM_WORLD);
+              CALI_MARK_END(commLarge);
+              CALI_MARK_END(comm);
               if(myHeight != 0) free(half1);  
               myHeight = height;
         }
@@ -61,6 +77,7 @@ int* mergeSort(int height, int id, int localArray[], int size, MPI_Comm comm, in
 
 int main(int argc, char** argv) {
     CALI_CXX_MARK_FUNCTION;
+    CALI_MARK_BEGIN(main);
 
     int numProcs, id, globalArraySize, localArraySize, height;
     int *localArray, *globalArray;
@@ -103,7 +120,11 @@ int main(int argc, char** argv) {
     //Merge sort
     if (id == 0) {
 		zeroStartTime = MPI_Wtime();
+        CALI_MARK_BEGIN(comp);
+		CALI_MARK_BEGIN(compLarge);
 		globalArray = mergeSort(height, id, localArray, localArraySize, MPI_COMM_WORLD, globalArray);
+        CALI_MARK_END(compLarge);
+		CALI_MARK_END(comp);
 		zeroTotalTime = MPI_Wtime() - zeroStartTime;
 		printf("Process #%d of %d on %s took %f seconds \n", 
 			id, numProcs, myHostName, zeroTotalTime);
@@ -127,6 +148,7 @@ int main(int argc, char** argv) {
 	}
 
     free(localArray);  
+    CALI_MARK_END(main);
 
 
     cali::ConfigManager mgr;
@@ -140,9 +162,11 @@ int main(int argc, char** argv) {
     adiak::clustername();
     adiak::value("Algorithm", "Merge Sort");
     adiak::value("ProgrammingModel", "MPI");
-    adiak::value("Datatype", "integer");
+    adiak::value("Datatype", "int");
     adiak::value("SizeOfDatatype", sizeof(int));
-    adiak::value("num_procs", num_procs);
+    adiak::value("InputSize", NUM_VALS); // The number of elements in input dataset (1000)
+    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", etc.
+    adiak::value("num_procs", 2);
     adiak::value("num_threads", THREADS);
     adiak::value("num_blocks", BLOCKS);
     adiak::value("num_vals", NUM_VALS);
