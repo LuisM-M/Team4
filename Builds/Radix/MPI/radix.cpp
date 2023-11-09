@@ -37,6 +37,7 @@ void radixSort(int arr[], int n, int rank, int comm_size) {
     int exp = 1;
 
     while (maxValue / exp > 0) {
+        CALI_MARK_BEGIN("comp");
         int output[n];
         int count[10] = {0};
 
@@ -58,7 +59,7 @@ void radixSort(int arr[], int n, int rank, int comm_size) {
         }
 
         exp *= 10;
-
+        CALI_MARK_END("comp");
         // Synchronize all processes at each digit pass
 
         // Synchronize begin
@@ -107,7 +108,7 @@ int main(int argc, char** argv) {
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
     // Initialize the array (you should replace this with your data)
-
+    CALI_MARK_BEGIN("data_init");
     unsigned int* arr = new unsigned int[num_vals];
 
     for(int i = 0; i < num_vals; i++) {
@@ -116,7 +117,7 @@ int main(int argc, char** argv) {
 
     // Ensure all processes have the same data
     MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
-
+    CALI_MARK_END"data_init");
     radixSort(arr, num_vals, rank, comm_size);
 
     if (rank == 0) {
