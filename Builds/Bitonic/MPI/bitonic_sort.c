@@ -24,22 +24,33 @@ unsigned int Log2n(unsigned int n) {
     return (n > 1) ? 1 + Log2n(n/2) : 0;
 }
 
+// check correctness of bitonic sorting algorithm
+int is_local_array_sorted(int *local_array, int local_size) {
+    for (int i = 0; i < local_size - 1; i++) {
+        if (local_array[i] > local_array[i + 1]) {
+            return 0; // Not sorted
+        }
+    }
+    return 1; // Sorted
+}
+
 int main(int argc, char * argv[]) {
 
-    cali::ConfigManager mgr;
-    mgr.start();
-    CALI_CXX_MARK_FUNCTION("main");
-
+    // Initialize MPI
     MPI_Init(&argc, &argv);
+    int process_rank, num_processes;
     MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
     MPI_Comm_rank(MPI_COMM_WORLD, &process_rank);
 
-    array_size = atoi(argv[1]) / num_processes;
-    array = (int *) malloc(array_size * sizeof(int));
+    // Process command-line arguments for array size
+    int global_array_size = atoi(argv[1]);
+    int local_array_size = global_array_size / num_processes;
+    int *local_array = (int *)malloc(local_array_size * sizeof(int));
 
-    srand(time(NULL) + process_rank * num_processes);  
-    for (int i = 0; i < array_size; i++) {
-        array[i] = rand() % (atoi(argv[1]));
+    // Seed the random number generator and fill the local array with random numbers
+    srand(time(NULL) + process_rank * num_processes);
+    for (int i = 0; i < local_array_size; i++) {
+        local_array[i] = rand() % global_array_size;
     }
 
     MPI_Barrier(MPI_COMM_WORLD);
@@ -73,11 +84,48 @@ int main(int argc, char * argv[]) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (process_rank == MASTER) {
-        timer_end = MPI_Wtime();
-        CALI_CXX_MARK_END("overall_sort_timer");
-        printf("Time Elapsed (Sec): %f\n", timer_end - timer_start);
+
+
+    // if (process_rank == MASTER) {
+    //     timer_end = MPI_Wtime();
+    //     CALI_CXX_MARK_END("overall_sort_timer");
+    //     printf("Time Elapsed (Sec): %f\n", timer_end - timer_start);
+    // }
+    // Check if the local array segment is sorted
+    int local_sorted = is_local_array_sorted(local_array, local_array_size);
+    if (!local_sorted) {
+        printf("Process %d: Local array segment is NOT sorted.\n", process_rank);
     }
+
+    // Gather all the local arrays from each process to the MASTER process
+    int *global_array = NULL;
+    if (process_rank == MASTER) {
+        global_array = malloc(num_processes * local_array_size * sizeof(int));
+    }
+    MPI_Gather(local_array, local_array_size, MPI_INT, global_array, local_array_size, MPI_INT, MASTER, MPI_COMM_WORLD);
+
+    // MASTER process checks if the entire array is sorted
+    if (process_rank == MASTER) {
+        int global_sorted = 1;
+        for (int i = 0; i < num_processes * local_array_size - 1; i++) {
+            if (global_array[i] > global_array[i + 1]) {
+                global_sorted = 0;
+                break;
+            }
+        }
+
+        if (global_sorted) {
+            printf("MASTER: The entire array is sorted correctly.\n");
+        } else {
+            printf("MASTER: The entire array is NOT sorted correctly.\n");
+        }
+        free(global_array);
+    }
+
+    // Clean up and finalize MPI
+    free(local_array);
+    MPI_Finalize();
+    return 0;
 
      // Report values using Adiak
     adiak::init(NULL);
@@ -97,8 +145,6 @@ int main(int argc, char * argv[]) {
     // adiak::value("num_blocks", BLOCKS);
     adiak::value("group_num", "4");
     adiak::value("implementation_source", "Online"); 
-    // Finalize Adiak
-    // adiak::fini();
 
     // Flush Caliper output before finalizing MPI
     mgr.stop();

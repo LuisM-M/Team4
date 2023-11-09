@@ -91,6 +91,16 @@ __global__ void bitonic_sort_step(int *dev_values, int j, int k)
   }
 }
 
+// correctness function
+bool check_sorted(int *arr, int length) {
+  for (int i = 0; i < length - 1; i++) {
+    if (arr[i] > arr[i + 1]) {
+      return false; // Array is not sorted
+    }
+  }
+  return true; // Array is sorted
+}
+
 /**
  * Inplace bitonic sort using CUDA.
  */
@@ -202,12 +212,22 @@ int main(int argc, char *argv[])
   array_fill(values, NUM_VALS);
 
   start = clock();
-  bitonic_sort(values); /* Inplace */
+  bitonic_sort(values); // Sort the array
+
+  
   stop = clock();
+  // Check if the array is sorted **********************
+  bool is_sorted = check_sorted(values, NUM_VALS);
+  if (!is_sorted) {
+    printf("The array is not sorted correctly.\n");
+  } else {
+    printf("The array is sorted correctly.\n");
+  }
 
   print_elapsed(start, stop);
   
   effective_bandwidth_gb_s = (NUM_VALS*4*4 *numiter / 1e9 ) / (bitonic_sort_step_time/ 1000);
+  
 
   // Store results in these variables.
  // float effective_bandwidth_gb_s;
