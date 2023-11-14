@@ -24,14 +24,21 @@ int BLOCKS;
 int NUM_VALS;
 float numiter = 0;
 
-float effective_bandwidth_gb_s = 0.0;
-  float bitonic_sort_step_time = 0.0;
-  float cudaMemcpy_host_to_device_time = 0.0;
-  float cudaMemcpy_device_to_host_time = 0.0;
+// float effective_bandwidth_gb_s = 0.0;
+//   float bitonic_sort_step_time = 0.0;
+//   float cudaMemcpy_host_to_device_time = 0.0;
+//   float cudaMemcpy_device_to_host_time = 0.0;
 
-const char* bitonic_sort_step_region = "bitonic_sort_step";
-const char* cudaMemcpy_host_to_device = "cudaMemcpy_host_to_device";
-const char* cudaMemcpy_device_to_host = "cudaMemcpy_device_to_host";
+const char* comm = "comm";
+const char* comm_large = "comm_large";
+const char* comp = "comp";
+const char* comp_large = "comp_large";
+const char* data_init = "data_init";
+const char* cudaMemcpy_1 = "cudaMemcpy_1";
+
+// const char* bitonic_sort_step_region = "bitonic_sort_step";
+// const char* cudaMemcpy_host_to_device = "cudaMemcpy_host_to_device";
+// const char* cudaMemcpy_device_to_host = "cudaMemcpy_device_to_host";
 
 void print_elapsed(clock_t start, clock_t stop)
 {
@@ -55,11 +62,13 @@ void array_print(int *arr, int length)
 
 void array_fill(int *arr, int length)
 {
+  CALI_MARK_BEGIN(data_init);
   srand(time(NULL));
   int i;
   for (i = 0; i < length; ++i) {
     arr[i] = random_int();
   }
+  CALI_MARK_END(data_init);
 }
 
 __global__ void bitonic_sort_step(int *dev_values, int j, int k)
@@ -108,28 +117,27 @@ void bitonic_sort(int *values)
 {
   int *dev_values;
   size_t size = NUM_VALS * sizeof(int); 
-  
-  cudaEvent_t startEvent1, stopEvent1; //
-  cudaEventCreate(&startEvent1); //
-  cudaEventCreate(&stopEvent1); //
-  
 
   cudaMalloc((void**) &dev_values, size);
-  
-  //cudaEventRecord(startEvent1); // 
   //MEM COPY FROM HOST TO DEVICE ********************************************************
+  // comm
+  CALI_MARK_BEGIN(comm);
+  CALI_MARK_BEGIN(comm_large);
+
+
+
+  CALI_MARK_BEGIN(cudaMemcpy_1);
   
-  CALI_MARK_BEGIN(cudaMemcpy_host_to_device);
-  cudaEventRecord(startEvent1); 
+  // cuda memcpy
   cudaMemcpy(dev_values, values, size, cudaMemcpyHostToDevice);
-  //CALI_MARK_END(cudaMemcpy_host_to_device);
   
-  cudaEventRecord(stopEvent1); //
-  cudaEventSynchronize(stopEvent1); //
-  cudaEventElapsedTime(&cudaMemcpy_host_to_device_time, startEvent1, stopEvent1); //
+  CALI_MARK_END(cudaMemcpy_1);
   
-  CALI_MARK_END(cudaMemcpy_host_to_device);
-  //cudaDeviceSynchronize();
+  CALI_MARK_END(comm_large);
+  CALI_MARK_END(comm);
+
+  
+  
 
 
   dim3 blocks(BLOCKS,1);    /* Number of blocks   */
@@ -140,12 +148,9 @@ void bitonic_sort(int *values)
   
   // BITONC SORT ******************************************************************************
   
-  cudaEvent_t startEvent2, stopEvent2; //
-  cudaEventCreate(&startEvent2); //
-  cudaEventCreate(&stopEvent2); //
   
-  CALI_MARK_BEGIN(bitonic_sort_step_region);
-  cudaEventRecord(startEvent2); // 
+  CALI_MARK_BEGIN(comp);
+  CALI_MARK_BEGIN(comp_large);
   
   
   for (k = 2; k <= NUM_VALS; k <<= 1) {
@@ -155,31 +160,13 @@ void bitonic_sort(int *values)
       numiter++;
     }
   }
-  CALI_MARK_END(bitonic_sort_step_region);
-  cudaDeviceSynchronize();
-  
-  cudaEventRecord(stopEvent2); //
-  cudaEventSynchronize(stopEvent2); //
-  cudaEventElapsedTime(&bitonic_sort_step_time, startEvent2, stopEvent2); //
+  CALI_MARK_END(comp_large);
+  CALI_MARK_END(comp);
   
   //MEM COPY FROM DEVICE TO HOST ************************************************************************
-  cudaEvent_t startEvent3, stopEvent3; //
-  cudaEventCreate(&startEvent3); //
-  cudaEventCreate(&stopEvent3); //
   
-  cudaEventRecord(startEvent3); // 
-  
-  CALI_MARK_BEGIN(cudaMemcpy_device_to_host);
   cudaMemcpy(values, dev_values, size, cudaMemcpyDeviceToHost);
   
-  //CALI_MARK_END(cudaMemcpy_device_to_host);
-  
-  cudaEventRecord(stopEvent3); //
-  cudaEventSynchronize(stopEvent3); //
-  cudaEventElapsedTime(&cudaMemcpy_device_to_host_time, startEvent3, stopEvent3); //
-  CALI_MARK_END(cudaMemcpy_device_to_host);
-  //cudaDeviceSynchronize();
-  cudaFree(dev_values);
   
   
 }
@@ -226,14 +213,14 @@ int main(int argc, char *argv[])
 
   print_elapsed(start, stop);
   
-  effective_bandwidth_gb_s = (NUM_VALS*4*4 *numiter / 1e9 ) / (bitonic_sort_step_time/ 1000);
+  // effective_bandwidth_gb_s = (NUM_VALS*4*4 *numiter / 1e9 ) / (bitonic_sort_step_time/ 1000);
   
 
   // Store results in these variables.
  // float effective_bandwidth_gb_s;
   //float bitonic_sort_step_time;
-  //float cudaMemcpy_host_to_device_time;
- // float cudaMemcpy_device_to_host_time;
+  float cudaMemcpy_host_to_device_time;
+ float cudaMemcpy_device_to_host_time;
   // printf("Elapsed time (cudaMemcpy host to device ):  %f\n", cudaMemcpy_host_to_device_time/1000);
   // printf("Elapsed time (cudaMemcpy device to host ):  %f\n", cudaMemcpy_device_to_host_time/1000);
   // printf("Elapsed time (bitonic_sort): %f\n", bitonic_sort_step_time/1000);
