@@ -28,7 +28,7 @@ int getMaxValue(int arr[], int n) {
 }
 
 // Radix Sort
-void radixSort(int arr[], int n, int rank, int comm_size) {
+void radixSort(unsigned int arr[], int n, int rank, int comm_size) {
     start = MPI_Wtime();
     // Radix begin 
     CALI_MARK_BEGIN(radix_sort);
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
 
     // Ensure all processes have the same data
     MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
-    CALI_MARK_END"data_init");
+    CALI_MARK_END("data_init");
     radixSort(arr, num_vals, rank, comm_size);
 
     if (rank == 0) {
@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 
         std::cout << "Time taken for sorting: " << end - start << " seconds" << std::endl;
         std::cout << "Sorted array: ";
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < num_vals; i++) {
             std::cout << arr[i] << " ";
         }
         std::cout << std::endl;
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
 
     adiak::init(NULL);
     adiak::launchdate();    // launch date of the job
-    adiak::libraries("MPI, Caliper");     // Libraries used
+    adiak::libraries("MPI");     // Libraries used
     adiak::cmdline();       // Command line used to launch the job
     adiak::clustername();   // Name of the cluster
     adiak::value("Algorithm", "Radix"); // The name of the algorithm you are using (e.g., "MergeSort", "BitonicSort")
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
     adiak::value("num_threads", threads); // The number of CUDA or OpenMP threads
     adiak::value("num_blocks", num_vals/threads); // The number of CUDA blocks 
     adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
-    adiak::value("implementation_source", "AI") // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
+    adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
     MPI_Finalize();
 
     delete[] arr;
