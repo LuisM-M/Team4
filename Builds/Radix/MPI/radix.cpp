@@ -28,7 +28,7 @@ int getMaxValue(int arr[], int n) {
 }
 
 // Radix Sort
-void radixSort(unsigned int arr[], int n, int rank, int comm_size) {
+void radixSort(int arr[], int n, int rank, int comm_size) {
     start = MPI_Wtime();
     // Radix begin 
     CALI_MARK_BEGIN(radix_sort);
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
     // Initialize the array (you should replace this with your data)
     CALI_MARK_BEGIN("data_init");
-    unsigned int* arr = new unsigned int[num_vals];
+    int arr[num_vals];
 
     for(int i = 0; i < num_vals; i++) {
         arr[i] = (rand() % 10000) + 1;
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 
     if (rank == 0) {
         std::cout << "Sorted array: ";
-        for (int i = 0; i < n; i++) {
+        for (int i = 0; i < num_vals; i++) {
             std::cout << arr[i] << " ";
         }
         std::cout << std::endl;
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
 
     adiak::init(NULL);
     adiak::launchdate();    // launch date of the job
-    adiak::libraries("MPI");     // Libraries used
+    adiak::libraries();     // Libraries used
     adiak::cmdline();       // Command line used to launch the job
     adiak::clustername();   // Name of the cluster
     adiak::value("Algorithm", "Radix"); // The name of the algorithm you are using (e.g., "MergeSort", "BitonicSort")
@@ -154,6 +154,5 @@ int main(int argc, char** argv) {
     adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
     MPI_Finalize();
 
-    delete[] arr;
     return 0;
 }
