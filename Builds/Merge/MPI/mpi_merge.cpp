@@ -215,7 +215,6 @@ void merge(int *a, int *b, int l, int m, int r) {
 
 /********** Recursive Merge Function **********/
 void mergeSort(int *a, int *b, int l, int r) {
-	CALI_MARK_BEGIN(comp_large);
 	int m;
 	
 	if(l < r) {
@@ -227,7 +226,6 @@ void mergeSort(int *a, int *b, int l, int r) {
 		merge(a, b, l, m, r);
 		
 		}
-	CALI_MARK_END(comp_large);	
 	}
 
 
