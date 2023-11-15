@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
     int* sub_array = (int*)malloc((n / size) * sizeof(int));
     int* sorted = NULL;
     int* array = NULL;
-
+    CALI_MARK_BEGIN(data_init);
     if (rank == 0) {
         array = (int*)malloc(n * sizeof(int));
         // Initialize the array with random data
@@ -89,6 +89,7 @@ int main(int argc, char* argv[]) {
         }
         sorted = (int*)malloc(n * sizeof(int));
     }
+    CALI_MARK_END(data_init);
 
     // Start communication and computation
 
