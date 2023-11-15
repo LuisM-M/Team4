@@ -7,118 +7,213 @@
 #include <caliper/cali-manager.h>
 #include <adiak.hpp>
 #include <cuda.h>
+#include <adiak.hpp>
 
-void print_elapsed(clock_t start, clock_t stop)
-{
-  double elapsed = ((double) (stop - start)) / CLOCKS_PER_SEC;
-  printf("Elapsed time: %.3fs\n", elapsed);
-}
+#define MAX_THREADS	128 
+#define N		512
 
-__device__ int partition(int *arr, int low, int high) {
-    int pivot = arr[high];
-    int i = low - 1;
-    for (int j = low; j < high; j++) {
-        if (arr[j] < pivot) {
-            i++;
-            // Swap arr[i] and arr[j]
-            int t = arr[i];
-            arr[i] = arr[j];
-            arr[j] = t;
+int*	r_values;
+int*	d_values;
+
+const char *comm = "comm";
+const char *comp = "comp";
+const char *comm_large = "comm_large";
+const char *comp_large = "comp_large";
+const char *cuda_memcpy_h2d = "cuda_memcpy_h2d";
+const char *cuda_memcpy_d2h = "cuda_memcpy_d2h";
+const char *data_init = "data_init";
+const char *correctness_check = "correctness_check";
+
+ // initialize data set
+void Init(int* values, int i) {
+	srand( time(NULL) );
+    printf("\n------------------------------\n");
+
+    if (i == 0) {
+    // Uniform distribution
+        printf("Data set distribution: Uniform\n");
+        for (int x = 0; x < N; ++x) {
+            values[x] = rand() % 100;
         }
     }
-    // Swap the pivot to the correct location
-    int t = arr[i + 1];
-    arr[i + 1] = arr[high];
-    arr[high] = t;
-    return i + 1;
-}
-
-__device__ void quicksort(int *arr, int low, int high) {
-    if (low < high) {
-        int pi = partition(arr, low, high);
-        quicksort(arr, low, pi - 1);
-        quicksort(arr, pi + 1, high);
-    }
-}
-
-__global__ void quicksortKernel(int *arr, int low, int high) {
-    quicksort(arr, low, high);
-}
-
-bool isSorted(int *array, int size) {
-    for (int i = 0; i < size - 1; ++i) {
-        if (array[i] > array[i + 1]) {
-            return false;
+    else if (i == 1) {
+    // Gaussian distribution
+    #define MEAN    100
+    #define STD_DEV 5
+        printf("Data set distribution: Gaussian\n");
+        float r;
+        for (int x = 0; x < N; ++x) {
+            r  = (rand()%3 - 1) + (rand()%3 - 1) + (rand()%3 - 1);
+            values[x] = int( round(r * STD_DEV + MEAN) );
         }
     }
-    return true;
+    else if (i == 2) {
+    // Bucket distribution
+        printf("Data set distribution: Bucket\n");
+        int j = 0;
+        for (int x = 0; x < N; ++x, ++j) {
+            if (j / 20 < 1)
+                values[x] = rand() % 20;
+            else if (j / 20 < 2)
+                values[x] = rand() % 20 + 20;
+            else if (j / 20 < 3)
+                values[x] = rand() % 20 + 40;
+            else if (j / 20 < 4)
+                values[x] = rand() % 20 + 60;
+            else if (j / 20 < 5)
+                values[x] = rand() % 20 + 80;
+            if (j == 100)
+                j = 0;
+        }
+    }
+    else if (i == 3) {
+        // Sorted distribution
+        printf("Data set distribution: Sorted\n");
+    }
+	else if (i == 4) {
+        printf("Data set distribution: Zero\n");
+        int r = rand() % 100;
+        for (int x = 0; x < N; ++x) {
+            values[x] = r;
+        }
+    }
+        printf("\n");
 }
 
-int main(int argc, char **argv) {
+// Kernel function
+__global__ static void quicksort(int* values) {
+    #define MAX_LEVELS	300
+	int pivot, L, R;
+	int idx =  threadIdx.x + blockIdx.x * blockDim.x;
+	int start[MAX_LEVELS];
+	int end[MAX_LEVELS];
+
+	start[idx] = idx;
+	end[idx] = N - 1;
+	while (idx >= 0) {
+		L = start[idx];
+		R = end[idx];
+		if (L < R) {
+			pivot = values[L];
+			while (L < R) {
+				while (values[R] >= pivot && L < R)
+					R--;
+				if(L < R)
+					values[L++] = values[R];
+				while (values[L] < pivot && L < R)
+					L++;
+				if (L < R)
+					values[R--] = values[L];
+			}
+			values[L] = pivot;
+			start[idx + 1] = L + 1;
+			end[idx + 1] = end[idx];
+			end[idx++] = L;
+			if (end[idx] - start[idx] > end[idx - 1] - start[idx - 1]) {
+                // swap start[idx] and start[idx-1]
+                int tmp = start[idx];
+                start[idx] = start[idx - 1];
+                start[idx - 1] = tmp;
+
+                // swap end[idx] and end[idx-1]
+                tmp = end[idx];
+                end[idx] = end[idx - 1];
+                end[idx - 1] = tmp;
+	        }
+		} else {
+			idx--;
+	    }
+    }
+}    
+ 
+ // program main
+ int main(int argc, char **argv) {
     CALI_CXX_MARK_FUNCTION;
-    if (argc != 3) {
-        printf("Usage: %s <number of threads per block> <number of values>\n", argv[0]);
-        exit(1);
-    }
-    clock_t start, stop;
-    num_threads = atoi(argv[1]);
-    num_vals = atoi(argv[2]);
-    num_blocks = num_vals / num_threads;
-    int *array;
-    int *d_array; // Device array pointer
-
-    start = clock();
-    array = (int *)malloc(num_vals * sizeof(int));
-    for (int i = 0; i < n; i++) {
-        array[i] = rand() % 100;
-    }
-
-    // Allocate device memory
-    cudaMalloc((void **)&d_array, num_vals * sizeof(int));
-
-    // Copy array from host to device
-    cudaMemcpy(d_array, array, num_vals * sizeof(int), cudaMemcpyHostToDevice);
-
     cali::ConfigManager mgr;
     mgr.start();
-
-    // Launch the quicksort kernel
-    quicksortKernel<<<num_blocks, num_threads>>>(d_array, 0, num_vals - 1);
-    cudaDeviceSynchronize();
-
-    // Copy the sorted array back to the host
-    cudaMemcpy(array, d_array, num_vals * sizeof(int), cudaMemcpyDeviceToHost);
-    stop = clock();
-    cudaFree(d_array);
-
-    mgr.stop();
-    mgr.flush();
     
-    print_elapsed(start, stop);
+	printf("./quicksort starting with %d numbers...\n", N);
+ 	size_t size = N * sizeof(int);
+ 	
+ 	// allocate host memory
+ 	r_values = (int*)malloc(size);
 
-    if (isSorted(array, num_vals)) {
-        printf("The array is sorted.\n");
-    } else {
-        printf("The array is NOT sorted.\n");
+	// allocate threads per block
+        const unsigned int cThreadsPerBlock = 128;
+                
+	for (int i = 0; i < 5; ++i) {
+        CALI_MARK_BEGIN(data_init);
+        Init(r_values, i);
+        CALI_MARK_END(data_init);
+
+	 	// copy data to device
+        CALI_MARK_BEGIN(comm);
+        CALI_MARK_BEGIN(comm_large);
+        CALI_MARK_BEGIN(cuda_memcpy_h2d);
+        cudaMemcpy(d_values, r_values, size, cudaMemcpyHostToDevice);
+        CALI_MARK_END(cuda_memcpy_h2d);
+        cudaDeviceSynchronize();
+        CALI_MARK_END(comm_large);
+        CALI_MARK_END(comm);
+
+		printf("Beginning kernel execution...\n");
+	
+		// execute kernel
+        CALI_MARK_BEGIN("comp");
+        CALI_MARK_BEGIN("comp_large");
+ 		quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values);
+        cudaDeviceSynchronize();
+ 		CALI_MARK_END("comp_large");
+        CALI_MARK_END("comp");
+
+        CALI_MARK_BEGIN(comm);
+        CALI_MARK_BEGIN(comm_large);
+        CALI_MARK_BEGIN(cuda_memcpy_d2h);
+        cudaMemcpy(r_values, d_values, size, cudaMemcpyDeviceToHost);
+        CALI_MARK_END(cuda_memcpy_d2h);
+        cudaDeviceSynchronize();
+        CALI_MARK_END(comm_large);
+        CALI_MARK_END(comm);
+
+		// test
+        printf("\nTesting results...\n");
+        CALI_MARK_BEGIN(correctness_check);
+        for (int x = 0; x < N - 1; x++) {
+            if (r_values[x] > r_values[x + 1]) {
+                printf("Sorting failed.\n");
+                break;
+            } else {
+                if (x == N - 2)
+                    printf("SORTING SUCCESSFUL\n");
+            }
+	    }
+        CALI_MARK_END(correctness_check);
     }
+ 	// free memory
+ 	free(r_values);
+ 	
+ 	cudaThreadExit();
 
+    int num_blocks = N / MAX_THREADS;
     adiak::init(NULL);
  	adiak::launchdate();    // launch date of the job
  	adiak::libraries();     // Libraries used
  	adiak::cmdline();       // Command line used to launch the job
  	adiak::clustername();   // Name of the cluster
- 	adiak::value("Algorithm", "Quick sort"); // The name of the algorithm you are using (e.g., "MergeSort", "BitonicSort")
- 	adiak::value("ProgrammingModel", CUDA); // e.g., "MPI", "CUDA", "MPIwithCUDA"
+ 	adiak::value("Algorithm", "Quick Sort"); // The name of the algorithm you are using (e.g., "MergeSort", "BitonicSort")
+ 	adiak::value("ProgrammingModel", "CUDA"); // e.g., "MPI", "CUDA", "MPIwithCUDA"
  	adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
  	adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
- 	adiak::value("InputSize", inputSize); // The number of elements in input dataset (1000)
- 	adiak::value("InputType", sorted); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
- 	adiak::value("num_procs", random); // The number of processors (MPI ranks)
- 	adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
+ 	adiak::value("InputSize", N); // The number of elements in input dataset (1000)
+ 	adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+ 	// adiak::value("num_procs", ); // The number of processors (MPI ranks)
+ 	adiak::value("num_threads", MAX_THREADS); // The number of CUDA or OpenMP threads
  	adiak::value("num_blocks", num_blocks); // The number of CUDA blocks 
  	adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
- 	adiak::value("implementation_source", AI) // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
+ 	adiak::value("implementation_source", "https://github.com/saigowri/CUDA/blob/master/quicksort.cu"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
     
-    free(array);
+    mgr.stop();
+    mgr.flush();
+
     return 0;
 }
