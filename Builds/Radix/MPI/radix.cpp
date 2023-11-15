@@ -9,17 +9,16 @@
 #include <adiak.hpp>
 
 double start, end;
-const char *data_init = "data_init";
+const char *data_init = "data_init"; //
 const char *comm = "comm";
 const char *comm_small = "comm_small";
-const char *MPI_Send_1 = "MPI_Send_1";
-const char *MPI_Recv_1 = "MPI_Recv_1";
+const char *MPI_Send_1 = "MPI_Send_1";//
+const char *MPI_Recv_1 = "MPI_Recv_1";//
 const char *comm_large = "comm_large";
-const char *comp = "comp";
-const char *comp_small = "comp_small";
-const char *seq_sort = "seq_sort";
-const char *comp_large = "comp_large";
-const char *memcpy_1 = "memcpy_1";
+const char *comp = "comp"; //
+const char *comp_small = "comp_small";//
+const char *seq_sort = "seq_sort";//
+const char *comp_large = "comp_large";//
 
 // Get the maximum value in the array
 int getMaxValue(int arr[], int n) {
@@ -48,23 +47,31 @@ void countSort(int arr[], int n, int exp) {
         output[count[(arr[i] / exp) % 10] - 1] = arr[i];
         count[(arr[i] / exp) % 10]--;
     }
-
+    // may need to move
+    CALI_MARK_BEGIN(seq_sort);
     for (int i = 0; i < n; i++) {
         arr[i] = output[i];
     }
+    CALI_MARK_END(seq_sort);
 }
 
 // Radix Sort Function
 void radixSort(int arr[], int n) {
+    CALI_MARK_BEGIN(comp_large);
     int maxValue = getMaxValue(arr, n);
     for (int exp = 1; maxValue / exp > 0; exp *= 10) {
+        CALI_MARK_BEGIN(comp_small);
         countSort(arr, n, exp);
+        CALI_MARK_END(comp_small);
     }
+    CALI_MARK_END(comp_large);
 }
 
 int main(int argc, char** argv) {
     // Initialization and argument checking remains the same
-
+    // MARK FUNCTION
+    CALI_CXX_MARK_FUNCTION;
+    CALI_MARK_BEGIN(data_init);
     MPI_Init(&argc, &argv);
     int num_vals, rank, comm_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -73,25 +80,31 @@ int main(int argc, char** argv) {
     num_vals = atoi(argv[1]); // Assuming num_vals is perfectly divisible by comm_size
     int local_num_vals = num_vals / comm_size;
     int *local_arr = new int[local_num_vals];
-    int *arr;
+    int *arr = new int[num_vals];
 
     if (rank == 0) {
-        arr = new int[num_vals];
         // Initialize and populate arr[]...
         for(int i = 0; i < num_vals; i++) {
             arr[i] = (rand() % 10000) + 1;
         }
-
-        MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+       
     }
+    MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+    CALI_MARK_END(data_init);
 
+    CALI_MARK_BEGIN(MPI_Send_1);
     MPI_Scatter(arr, local_num_vals, MPI_INT, local_arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+    CALI_MARK_END(MPI_Send_1);
 
+    CALI_MARK_BEGIN(comp); // may need to move
     start = MPI_Wtime();
     radixSort(local_arr, local_num_vals);
     end = MPI_Wtime();
+    CALI_MARK_END(comp);
 
+    CALI_MARK_BEGIN(MPI_Recv_1);
     MPI_Gather(local_arr, local_num_vals, MPI_INT, arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+    CALI_MARK_END(MPI_Recv_1);
 
     if (rank == 0) {
         // Reapply the radix sort to the entire array
@@ -112,9 +125,8 @@ int main(int argc, char** argv) {
 
 
     delete[] local_arr;
-    if (rank == 0) {
-        delete[] arr;
-    }
+    delete[] arr;
+
 
     adiak::init(NULL);
     adiak::launchdate();    // launch date of the job
