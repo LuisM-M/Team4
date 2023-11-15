@@ -32,19 +32,19 @@ int main(int argc, char** argv) {
 	
 	int c;
 	srand(time(NULL));
-	printf("This is the unsorted array: ");
+	// printf("This is the unsorted array: ");
 
     CALI_MARK_BEGIN(data_init);
 	for(c = 0; c < n; c++) {
 		
 		original_array[c] = rand() % n;
-		printf("%d ", original_array[c]);
+		// printf("%d ", original_array[c]);
 		
 		}
     CALI_MARK_END(data_init);
 
-	printf("\n");
-	printf("\n");
+	// printf("\n");
+	// printf("\n");
 	
 	/********** Initialize MPI **********/
 	int world_rank;
@@ -94,15 +94,15 @@ int main(int argc, char** argv) {
 		mergeSort(sorted, other_array, 0, (n - 1));
 		
 		/********** Display the sorted array **********/
-		printf("This is the sorted array: ");
-		for(c = 0; c < n; c++) {
+		// printf("This is the sorted array: ");
+		// for(c = 0; c < n; c++) {
 			
-			printf("%d ", sorted[c]);
+		// 	printf("%d ", sorted[c]);
 			
-			}
+		// 	}
 			
-		printf("\n");
-		printf("\n");
+		// printf("\n");
+		// printf("\n");
 
         if(isSorted(sorted, n)) {
             printf("\n");
