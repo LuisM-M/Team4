@@ -1,4 +1,5 @@
 // Source Code from: https://github.com/racorretjer/Parallel-Merge-Sort-with-MPI/blob/master/merge-mpi.c by racorretjer (Roberto Arce Corretjer)
+// I added the caliper & adiak implementations and a function to check that the array is sorted
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,6 +20,7 @@ const char *correctness_check = "correctness_check";
 
 void merge(int *, int *, int, int, int);
 void mergeSort(int *, int *, int, int);
+bool isSorted(const int *array, int size);
 
 int main(int argc, char** argv) {
 	CALI_CXX_MARK_FUNCTION;
@@ -26,7 +28,7 @@ int main(int argc, char** argv) {
     mgr.start();
 	/********** Create and populate the array **********/
 	int n = atoi(argv[1]);
-	int *original_array = malloc(n * sizeof(int));
+	int *original_array = (int*)malloc(n * sizeof(int));
 	
 	int c;
 	srand(time(NULL));
@@ -58,7 +60,7 @@ int main(int argc, char** argv) {
 	/********** Send each subarray to each process **********/
 	CALI_MARK_BEGIN(comm);
     CALI_MARK_BEGIN(comm_large);
-    int *sub_array = malloc(size * sizeof(int));
+    int *sub_array = (int*)malloc(size * sizeof(int));
 	MPI_Scatter(original_array, size, MPI_INT, sub_array, size, MPI_INT, 0, MPI_COMM_WORLD);
 	CALI_MARK_END(comm_large);
     CALI_MARK_END(comm);
@@ -66,7 +68,7 @@ int main(int argc, char** argv) {
 	/********** Perform the mergesort on each process **********/
 	CALI_MARK_BEGIN(comp);
 	CALI_MARK_BEGIN(comp_large);
-    int *tmp_array = malloc(size * sizeof(int));
+    int *tmp_array = (int*)malloc(size * sizeof(int));
 	mergeSort(sub_array, tmp_array, 0, (size - 1));
     CALI_MARK_END(comp_large);
 	CALI_MARK_END(comp);
@@ -77,7 +79,7 @@ int main(int argc, char** argv) {
     int *sorted = NULL;
 	if(world_rank == 0) {
 		
-		sorted = malloc(n * sizeof(int));
+		sorted = (int*)malloc(n * sizeof(int));
 		
 		}
 	
