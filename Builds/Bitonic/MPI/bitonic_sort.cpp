@@ -38,10 +38,11 @@ const char *comm = "comm";
 const char *comm_small = "comm_small";
 const char *MPI_Send_1 = "MPI_Send_1";
 const char *MPI_Recv_1 = "MPI_Recv_1";
+const char *MPI_Send_2 = "MPI_Send_2";
+const char *MPI_Recv_2 = "MPI_Recv_2";
 const char *comm_large = "comm_large";
 const char *comp = "comp";
 const char *comp_small = "comp_small";
-const char *seq_sort = "seq_sort";
 const char *comp_large = "comp_large";
 const char *memcpy_1 = "memcpy_1";
 
@@ -168,28 +169,30 @@ void compareExchange(int *numbers, int howMany,
     CALI_MARK_BEGIN(comm_large);
     if (node1 == rank)
     {
-        // CALI_MARK_BEGIN(MPI_Send);
+        CALI_MARK_BEGIN(MPI_Send_1);
         MPI_Send(numbers, howMany, MPI_INT, nodeFrom, sequenceNo, MPI_COMM_WORLD);
-        // CALI_MARK_END(MPI_Send);
-        // CALI_MARK_BEGIN(MPI_Recv);
+        CALI_MARK_END(MPI_Send_1);
+
+        CALI_MARK_BEGIN(MPI_Recv_1);
         MPI_Recv(&tempArray[howMany], howMany, MPI_INT, nodeFrom, sequenceNo,
                  MPI_COMM_WORLD, &status);
-        // CALI_MARK_END(MPI_Recv);
+        CALI_MARK_END(MPI_Recv_1);
     }
     else
     {
-        // CALI_MARK_BEGIN("MPI_Recv");
+        CALI_MARK_BEGIN(MPI_Recv_2);
         MPI_Recv(&tempArray[howMany], howMany, MPI_INT, nodeFrom, sequenceNo,
                  MPI_COMM_WORLD, &status);
-        // CALI_MARK_END("MPI_Recv");
-        // CALI_MARK_BEGIN("MPI_Send");
+        CALI_MARK_END(MPI_Recv_2);
+        
+        CALI_MARK_BEGIN(MPI_Send_2);
         MPI_Send(numbers, howMany, MPI_INT, nodeFrom, sequenceNo, MPI_COMM_WORLD);
-        // CALI_MARK_END("MPI_Send");
+        CALI_MARK_END(MPI_Send_2);
     }
     CALI_MARK_END(comm_large);
 
     CALI_MARK_BEGIN(comp_large);
-    CALI_MARK_BEGIN(seq_sort);
+    
     // sort them.
     if (biggerFirst)
     {
@@ -200,7 +203,7 @@ void compareExchange(int *numbers, int howMany,
         qsort(tempArray, howMany * 2, sizeof(int), compareAscending);
     }
     
-    CALI_MARK_END(seq_sort);
+    
     CALI_MARK_END(comp_large);
 
     CALI_MARK_BEGIN(memcpy_1);
@@ -357,6 +360,6 @@ int main(int argc, char *argv[])
     adiak::value("num_procs", numTasks);                        // The number of processors (MPI ranks)
     // adiak::value("num_threads", );                    // The number of CUDA or OpenMP threads
     // adiak::value("num_blocks", num_blocks);                      // The number of CUDA blocks
-    adiak::value("group_num", 8);                     // The number of your group (integer, e.g., 1, 10)
+    adiak::value("group_num", "4");                     // The number of your group (integer, e.g., 1, 10)
     adiak::value("implementation_source", "Online"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
 }

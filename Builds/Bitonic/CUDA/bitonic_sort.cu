@@ -238,7 +238,7 @@ int main(int argc, char *argv[])
   adiak::value("SizeOfDatatype", sizeof(int));
   adiak::value("InputSize", NUM_VALS); // The number of elements in input dataset (1000)
   adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
-  adiak::value("num_procs", "2"); // The number of processors (MPI ranks)
+  // adiak::value("num_procs", "2"); // The number of processors (MPI ranks)
   adiak::value("num_threads", THREADS);
   adiak::value("num_blocks", BLOCKS);
   adiak::value("group_num", "4");
