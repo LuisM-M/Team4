@@ -25,59 +25,11 @@ const char *data_init = "data_init";
 const char *correctness_check = "correctness_check";
 
  // initialize data set
-void Init(int* values, int i) {
+void Init(int* values) {
 	srand( time(NULL) );
-    printf("\n------------------------------\n");
-
-    if (i == 0) {
-    // Uniform distribution
-        printf("Data set distribution: Uniform\n");
-        for (int x = 0; x < N; ++x) {
-            values[x] = rand() % 100;
-        }
+    for (int x = 0; x < N; ++x) {
+        values[x] = rand() % 100;
     }
-    else if (i == 1) {
-    // Gaussian distribution
-    #define MEAN    100
-    #define STD_DEV 5
-        printf("Data set distribution: Gaussian\n");
-        float r;
-        for (int x = 0; x < N; ++x) {
-            r  = (rand()%3 - 1) + (rand()%3 - 1) + (rand()%3 - 1);
-            values[x] = int( round(r * STD_DEV + MEAN) );
-        }
-    }
-    else if (i == 2) {
-    // Bucket distribution
-        printf("Data set distribution: Bucket\n");
-        int j = 0;
-        for (int x = 0; x < N; ++x, ++j) {
-            if (j / 20 < 1)
-                values[x] = rand() % 20;
-            else if (j / 20 < 2)
-                values[x] = rand() % 20 + 20;
-            else if (j / 20 < 3)
-                values[x] = rand() % 20 + 40;
-            else if (j / 20 < 4)
-                values[x] = rand() % 20 + 60;
-            else if (j / 20 < 5)
-                values[x] = rand() % 20 + 80;
-            if (j == 100)
-                j = 0;
-        }
-    }
-    else if (i == 3) {
-        // Sorted distribution
-        printf("Data set distribution: Sorted\n");
-    }
-	else if (i == 4) {
-        printf("Data set distribution: Zero\n");
-        int r = rand() % 100;
-        for (int x = 0; x < N; ++x) {
-            values[x] = r;
-        }
-    }
-        printf("\n");
 }
 
 // Kernel function
@@ -138,57 +90,61 @@ __global__ static void quicksort(int* values) {
  	// allocate host memory
  	r_values = (int*)malloc(size);
 
-	// allocate threads per block
-        const unsigned int cThreadsPerBlock = 128;
-                
-	for (int i = 0; i < 5; ++i) {
-        CALI_MARK_BEGIN(data_init);
-        Init(r_values, i);
-        CALI_MARK_END(data_init);
-
-	 	// copy data to device
-        CALI_MARK_BEGIN(comm);
-        CALI_MARK_BEGIN(comm_large);
-        CALI_MARK_BEGIN(cuda_memcpy_h2d);
-        cudaMemcpy(d_values, r_values, size, cudaMemcpyHostToDevice);
-        CALI_MARK_END(cuda_memcpy_h2d);
-        cudaDeviceSynchronize();
-        CALI_MARK_END(comm_large);
-        CALI_MARK_END(comm);
-
-		printf("Beginning kernel execution...\n");
-	
-		// execute kernel
-        CALI_MARK_BEGIN("comp");
-        CALI_MARK_BEGIN("comp_large");
- 		quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values);
-        cudaDeviceSynchronize();
- 		CALI_MARK_END("comp_large");
-        CALI_MARK_END("comp");
-
-        CALI_MARK_BEGIN(comm);
-        CALI_MARK_BEGIN(comm_large);
-        CALI_MARK_BEGIN(cuda_memcpy_d2h);
-        cudaMemcpy(r_values, d_values, size, cudaMemcpyDeviceToHost);
-        CALI_MARK_END(cuda_memcpy_d2h);
-        cudaDeviceSynchronize();
-        CALI_MARK_END(comm_large);
-        CALI_MARK_END(comm);
-
-		// test
-        printf("\nTesting results...\n");
-        CALI_MARK_BEGIN(correctness_check);
-        for (int x = 0; x < N - 1; x++) {
-            if (r_values[x] > r_values[x + 1]) {
-                printf("Sorting failed.\n");
-                break;
-            } else {
-                if (x == N - 2)
-                    printf("SORTING SUCCESSFUL\n");
-            }
-	    }
-        CALI_MARK_END(correctness_check);
+    cudaError_t err = cudaMalloc((void **)&d_values, size);
+    if (err != cudaSuccess) {
+        fprintf(stderr, "Failed to allocate device memory - %s\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
     }
+	// allocate threads per block
+    const unsigned int cThreadsPerBlock = 128;
+                
+	//for (int i = 0; i < 5; ++i) {
+    CALI_MARK_BEGIN(data_init);
+    Init(r_values);
+    CALI_MARK_END(data_init);
+
+    // copy data to device
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_large);
+    CALI_MARK_BEGIN(cuda_memcpy_h2d);
+    cudaMemcpy(d_values, r_values, size, cudaMemcpyHostToDevice);
+    CALI_MARK_END(cuda_memcpy_h2d);
+    cudaDeviceSynchronize();
+    CALI_MARK_END(comm_large);
+    CALI_MARK_END(comm);
+
+    printf("Beginning kernel execution...\n");
+
+    // execute kernel
+    CALI_MARK_BEGIN("comp");
+    CALI_MARK_BEGIN("comp_large");
+    quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values);
+    cudaDeviceSynchronize();
+    CALI_MARK_END("comp_large");
+    CALI_MARK_END("comp");
+
+    CALI_MARK_BEGIN(comm);
+    CALI_MARK_BEGIN(comm_large);
+    CALI_MARK_BEGIN(cuda_memcpy_d2h);
+    cudaMemcpy(r_values, d_values, size, cudaMemcpyDeviceToHost);
+    CALI_MARK_END(cuda_memcpy_d2h);
+    cudaDeviceSynchronize();
+    CALI_MARK_END(comm_large);
+    CALI_MARK_END(comm);
+
+    // test
+    printf("\nTesting results...\n");
+    CALI_MARK_BEGIN(correctness_check);
+    for (int x = 0; x < N - 1; x++) {
+        if (r_values[x] > r_values[x + 1]) {
+            printf("Sorting failed.\n");
+            break;
+        } else {
+            if (x == N - 2)
+                printf("SORTING SUCCESSFUL\n");
+        }
+    }
+    CALI_MARK_END(correctness_check);
  	// free memory
  	free(r_values);
  	
