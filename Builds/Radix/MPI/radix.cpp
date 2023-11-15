@@ -1,21 +1,26 @@
-// Source: AI
-
 #include <iostream>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
-
-
-#include "mpi.h"
+#include <mpi.h>
 #include <caliper/cali.h>
 #include <caliper/cali-manager.h>
 #include <adiak.hpp>
 
 double start, end;
-const char* radix_sort = "radix_sort";
-const char* synchron = "synchron";
-const char* gather = "gather";
+const char *data_init = "data_init";
+const char *comm = "comm";
+const char *comm_small = "comm_small";
+const char *MPI_Send_1 = "MPI_Send_1";
+const char *MPI_Recv_1 = "MPI_Recv_1";
+const char *comm_large = "comm_large";
+const char *comp = "comp";
+const char *comp_small = "comp_small";
+const char *seq_sort = "seq_sort";
+const char *comp_large = "comp_large";
+const char *memcpy_1 = "memcpy_1";
+
 // Get the maximum value in the array
 int getMaxValue(int arr[], int n) {
     int max = arr[0];
@@ -27,114 +32,89 @@ int getMaxValue(int arr[], int n) {
     return max;
 }
 
-// Radix Sort
-void radixSort(int arr[], int n, int rank, int comm_size) {
-    start = MPI_Wtime();
-    // Radix begin 
-    CALI_MARK_BEGIN(radix_sort);
+void countSort(int arr[], int n, int exp) {
+    int output[n];
+    int count[10] = {0};
 
-    int maxValue = getMaxValue(arr, n);
-    int exp = 1;
-
-    while (maxValue / exp > 0) {
-        CALI_MARK_BEGIN("comp");
-        int output[n];
-        int count[10] = {0};
-
-        for (int i = 0; i < n; i++) {
-            count[(arr[i] / exp) % 10]++;
-        }
-
-        for (int i = 1; i < 10; i++) {
-            count[i] += count[i - 1];
-        }
-
-        for (int i = n - 1; i >= 0; i--) {
-            output[count[(arr[i] / exp) % 10] - 1] = arr[i];
-            count[(arr[i] / exp) % 10]--;
-        }
-
-        for (int i = 0; i < n; i++) {
-            arr[i] = output[i];
-        }
-
-        exp *= 10;
-        CALI_MARK_END("comp");
-        // Synchronize all processes at each digit pass
-
-        // Synchronize begin
-        CALI_MARK_BEGIN(synchron);
-
-        MPI_Barrier(MPI_COMM_WORLD);
-        // Synchronize end
-        CALI_MARK_END(synchron);
-
-        // Each process sorts its part of the array
-        int chunkSize = n / comm_size;
-        int* localArr = new int[chunkSize];
-
-        
-
-        MPI_Scatter(arr, chunkSize, MPI_INT, localArr, chunkSize, MPI_INT, 0, MPI_COMM_WORLD);
-
-        radixSort(localArr, chunkSize, rank, comm_size);
-
-        // gather begin
-        CALI_MARK_BEGIN(gather);
-
-        MPI_Gather(localArr, chunkSize, MPI_INT, arr, chunkSize, MPI_INT, 0, MPI_COMM_WORLD);
-
-        // gather begin
-        CALI_MARK_END(gather);
-
-        end = MPI_Wtime();
-
-        delete[] localArr;
+    for (int i = 0; i < n; i++) {
+        count[(arr[i] / exp) % 10]++;
     }
 
-    // Radix end
-    CALI_MARK_END(radix_sort);
+    for (int i = 1; i < 10; i++) {
+        count[i] += count[i - 1];
+    }
+
+    for (int i = n - 1; i >= 0; i--) {
+        output[count[(arr[i] / exp) % 10] - 1] = arr[i];
+        count[(arr[i] / exp) % 10]--;
+    }
+
+    for (int i = 0; i < n; i++) {
+        arr[i] = output[i];
+    }
+}
+
+// Radix Sort Function
+void radixSort(int arr[], int n) {
+    int maxValue = getMaxValue(arr, n);
+    for (int exp = 1; maxValue / exp > 0; exp *= 10) {
+        countSort(arr, n, exp);
+    }
 }
 
 int main(int argc, char** argv) {
-    CALI_CXX_MARK_FUNCTION;
-    MPI_Init(&argc, &argv);
-    int num_vals = atoi(argv[1]);
-    int threads  = atoi(argv[2]);
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Initialization and argument checking remains the same
 
-    int comm_size;
+    MPI_Init(&argc, &argv);
+    int num_vals, rank, comm_size;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
-    // Initialize the array (you should replace this with your data)
-    CALI_MARK_BEGIN("data_init");
-    int arr[num_vals];
-
-    for(int i = 0; i < num_vals; i++) {
-        arr[i] = (rand() % 10000) + 1;
-    }
-
-    // Ensure all processes have the same data
-    MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
-    CALI_MARK_END("data_init");
-    radixSort(arr, num_vals, rank, comm_size);
+    num_vals = atoi(argv[1]); // Assuming num_vals is perfectly divisible by comm_size
+    int local_num_vals = num_vals / comm_size;
+    int *local_arr = new int[local_num_vals];
+    int *arr;
 
     if (rank == 0) {
-        std::cout << "Sorted array: ";
-        for (int i = 0; i < num_vals; i++) {
-            std::cout << arr[i] << " ";
+        arr = new int[num_vals];
+        // Initialize and populate arr[]...
+        for(int i = 0; i < num_vals; i++) {
+            arr[i] = (rand() % 10000) + 1;
         }
-        std::cout << std::endl;
 
-        std::cout << "Time taken for sorting: " << end - start << " seconds" << std::endl;
-        std::cout << "Sorted array: ";
-        for (int i = 0; i < num_vals; i++) {
-            std::cout << arr[i] << " ";
-        }
-        std::cout << std::endl;
+        MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
     }
 
+    MPI_Scatter(arr, local_num_vals, MPI_INT, local_arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+
+    start = MPI_Wtime();
+    radixSort(local_arr, local_num_vals);
+    end = MPI_Wtime();
+
+    MPI_Gather(local_arr, local_num_vals, MPI_INT, arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        // Reapply the radix sort to the entire array
+        for (int exp = 1; getMaxValue(arr, num_vals) / exp > 0; exp *= 10) {
+            countSort(arr, num_vals, exp);
+        }
+
+        // Display the sorted array
+        std::cout << "Sorted array: ";
+        for (int i = 0; i < num_vals; i++) {
+            std::cout << arr[i] << " ";
+        }
+        std::cout << std::endl;
+
+        // Timing information
+        std::cout << "Time taken for sorting: " << end - start << " seconds" << std::endl;
+    }
+
+
+    delete[] local_arr;
+    if (rank == 0) {
+        delete[] arr;
+    }
 
     adiak::init(NULL);
     adiak::launchdate();    // launch date of the job
@@ -148,8 +128,8 @@ int main(int argc, char** argv) {
     adiak::value("InputSize", num_vals); // The number of elements in input dataset (1000)
     adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", comm_size); // The number of processors (MPI ranks)
-    adiak::value("num_threads", threads); // The number of CUDA or OpenMP threads
-    adiak::value("num_blocks", num_vals/threads); // The number of CUDA blocks 
+    adiak::value("num_threads", 0); // The number of CUDA or OpenMP threads
+    adiak::value("num_blocks", 0); // The number of CUDA blocks 
     adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
     adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
     MPI_Finalize();
