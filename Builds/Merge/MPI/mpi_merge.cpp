@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 	int world_rank;
 	int world_size;
 	
-	MPI_INIT(&argc, &argv);
+	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 		
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 	/********** Make the final mergeSort call **********/
 	if(world_rank == 0) {
 		
-		int *other_array = malloc(n * sizeof(int));
+		int *other_array = (int*)malloc(n * sizeof(int));
 		mergeSort(sorted, other_array, 0, (n - 1));
 		
 		/********** Display the sorted array **********/
