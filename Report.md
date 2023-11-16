@@ -318,4 +318,5 @@ We successfully extracted performance metrics from each algorithm's Caliper file
 
 
 Bitonic Sort CUDA Data:  
-![Bitonic Sort CUDA Data Example](Images/Graphs/bitonic_cuda_data.PNG "Bitonic Sort CUDA Data Example")  
+![Bitonic Sort CUDA Data Example](Images/bitonic_cuda_data.PNG "Bitonic Sort CUDA Data Example")  
+
