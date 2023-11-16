@@ -26,5 +26,5 @@ module load CUDA                #load CUDA module
 module load GCCcore/7.3.0
 #
 
-CALI_CONFIG="spot(output=${num_threads}-${num_vals}.cali)" \
-./radix_cuda $num_threads $num_vals 0
+CALI_CONFIG="spot(output=cuda${num_threads}-${num_vals}.cali)" \
+./radix_sort $num_threads $num_vals
