@@ -249,4 +249,4 @@ In conclusion, based on these analytical time complexities when parallelized, it
 
 ## 4. Performance evaluation
 
-![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.png "Bitonic Sort CUDA Graph")
+![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")
