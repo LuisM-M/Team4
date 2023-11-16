@@ -9,11 +9,10 @@
 #include <ctime>
 #include <adiak.hpp>
 
-const char* comm = "comm";
-const char* comm_large = "comm_large";
 const char* comp = "comp";
 const char* comp_large = "comp_large";
-const char* comp_small = "comp_small";
+const char* comp_small_1 = "comp_small_1";
+const char* comp_small_2 = "comp_small_2";
 const char* data_init = "data_init";
 const char* cudaMemcpy_htd = "cudaMemcpy_htd";
 const char* cudaMemcpy_dth = "cudaMemcpy_dth";
@@ -47,11 +46,14 @@ void radixSort(int* d_input, int* d_output, int numElements) {
     dim3 blockSize(256);
     dim3 gridSize((numElements + blockSize.x - 1) / blockSize.x);
 
+    CALI_MARK_BEGIN(comp_large);
     for (int bit = 0; bit < 32; ++bit) {
         cudaMemset(d_count, 0, 2 * sizeof(int));
         
         // Count digit occurrences
+        CALI_MARK_BEGIN(comp_small_1);
         countDigitOccurrencesKernel<<<gridSize, blockSize>>>(d_input, d_count, numElements, bit);
+        CALI_MARK_END(comp_small_1);
         cudaDeviceSynchronize();
 
         // Copy count to host and compute prefix sum
@@ -61,13 +63,15 @@ void radixSort(int* d_input, int* d_output, int numElements) {
         cudaMemcpy(d_prefixSum, h_count, 2 * sizeof(int), cudaMemcpyHostToDevice);
 
         // Reorder elements
+        CALI_MARK_BEGIN(comp_small_2);
         reorderKernel<<<gridSize, blockSize>>>(d_input, d_output, d_count, d_prefixSum, numElements, bit);
+        CALI_MARK_END(comp_small_2);
         cudaDeviceSynchronize();
 
         // Swap input and output for next iteration
         std::swap(d_input, d_output);
     }
-
+    CALI_MARK_END(comp_large);
     cudaFree(d_count);
     cudaFree(d_prefixSum);
 }
@@ -84,11 +88,13 @@ void generateRandomArray(int* array, int size) {
 }
 
 int main(int argc, char* argv[]) {
+    CALI_CXX_MARK_FUNCTION;
     if (argc < 3) {
         std::cerr << "Usage: " << argv[0] << " [numThreads] [arraySize]" << std::endl;
         return 1;
     }
 
+    CALI_MARK_BEGIN(data_init);
     int numThreads = atoi(argv[1]);
     int arraySize = atoi(argv[2]);
 
@@ -101,21 +107,23 @@ int main(int argc, char* argv[]) {
     cudaMalloc(&d_input, arraySize * sizeof(int));
     int* d_output;
     cudaMalloc(&d_output, arraySize * sizeof(int));
+    CALI_MARK_END(data_init);
+
 
     // Copy data to device
+    CALI_MARK_BEGIN(cudaMemcpy_htd);
     cudaMemcpy(d_input, h_input, arraySize * sizeof(int), cudaMemcpyHostToDevice);
-
-    // Start Caliper instrumentation
-    cali::Annotation("radix_sort").begin();
+    CALI_MARK_END(cudaMemcpy_htd);
 
     // Perform radix sort
+    CALI_MARK_BEGIN(comp);
     radixSort(d_input, d_output, arraySize);
-
-    // End Caliper instrumentation
-    cali::Annotation("radix_sort").end();
+    CALI_MARK_END(comp);
 
     // Copy sorted data back to host
+    CALI_MARK_BEGIN(cudaMemcpy_dth);
     cudaMemcpy(h_input, d_output, arraySize * sizeof(int), cudaMemcpyDeviceToHost);
+    CALI_MARK_END(cudaMemcpy_dth);
 
     // Output results (for debugging, you may want to print only a few elements)
     for (int i = 0; i < 10; ++i) {
