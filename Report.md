@@ -247,3 +247,6 @@ The time complexity of Radix Sort is O(w*n) for the serial/sequential version, w
 The Bitonic Sort algorithm has an O(logn) time complexity. However when it comes to the parallelized algorithm implementation with CUDA theoretically should be O(log (n/p)) where p is the number of processors. 
 In conclusion, based on these analytical time complexities when parallelized, it is clear to see why quicksort would be the most optimal. Parallelizing these algorithms as a whole will greatly reduce run times of the algorithms.
 
+## 4. Performance evaluation
+
+![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.png "Bitonic Sort CUDA Graph")
