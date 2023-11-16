@@ -249,26 +249,26 @@ In conclusion, based on these analytical time complexities when parallelized, it
 
 ## 4. Performance evaluation
 
-Bitonic Sort CUDA:
-![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")
+Bitonic Sort CUDA:  
+![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")  
 
-Bitonic Sort MPI:
-![Bitonic Sort MPI Graph](Graphs/bitonic_mpi.PNG "Bitonic Sort MPI Graph")
+Bitonic Sort MPI:  
+![Bitonic Sort MPI Graph](Graphs/bitonic_mpi.PNG "Bitonic Sort MPI Graph")  
 
-Quick Sort CUDA:
-![Quick Sort CUDA Graph](Graphs/quick_cuda.PNG "Quick Sort CUDA Graph")
+Quick Sort CUDA:  
+![Quick Sort CUDA Graph](Graphs/quick_cuda.PNG "Quick Sort CUDA Graph")  
 
-Quick Sort MPI:
-![Quick Sort MPI Graph](Graphs/quick_mpi.PNG "Quick Sort MPI Graph")
+Quick Sort MPI:  
+![Quick Sort MPI Graph](Graphs/quick_mpi.PNG "Quick Sort MPI Graph")  
 
-Merge Sort CUDA:
-![Merge Sort CUDA Graph](Graphs/merge_cuda.PNG "Merge Sort CUDA Graph")
+Merge Sort CUDA:  
+![Merge Sort CUDA Graph](Graphs/merge_cuda.PNG "Merge Sort CUDA Graph")  
 
-Merge Sort MPI:
-![Merge Sort MPI Graph](Graphs/merge_mpi.PNG "Merge Sort MPI Graph")
+Merge Sort MPI:  
+![Merge Sort MPI Graph](Graphs/merge_mpi.PNG "Merge Sort MPI Graph")  
 
-Radix Sort CUDA:
-![Radix Sort CUDA Graph](Graphs/radix_cuda.PNG "Radix Sort CUDA Graph")
+Radix Sort CUDA:  
+![Radix Sort CUDA Graph](Graphs/radix_cuda.PNG "Radix Sort CUDA Graph")  
 
-Radix Sort MPI:
-![Radix Sort MPI Graph](Graphs/radix_mpi.PNG "Radix Sort MPI Graph")
+Radix Sort MPI:  
+![Radix Sort MPI Graph](Graphs/radix_mpi.PNG "Radix Sort MPI Graph")  
