@@ -6,7 +6,7 @@ find_package(MPI REQUIRED)
 find_package(caliper REQUIRED)
 find_package(adiak REQUIRED)
 
-add_executable(bitonic bitonic_sort.cu)
+add_executable(quick quick_sort_cuda.cu)
 
 message(STATUS "MPI includes : ${MPI_INCLUDE_PATH}")
 message(STATUS "CUDA includes : ${CUDA_INCLUDE_DIRS}")
@@ -17,5 +17,5 @@ include_directories(${CUDA_INCLUDE_DIRS})
 include_directories(${caliper_INCLUDE_DIR})
 include_directories(${adiak_INCLUDE_DIRS})
 
-target_link_libraries(bitonic PRIVATE MPI::MPI_CXX)
-target_link_libraries(bitonic PRIVATE caliper)
+target_link_libraries(quick PRIVATE MPI::MPI_CXX)
+target_link_libraries(quick PRIVATE caliper)
