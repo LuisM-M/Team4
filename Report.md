@@ -257,28 +257,28 @@ Currently, our testing has been confined to arrays with randomly generated value
 This revised version presents the same information in a more structured and formal tone, enhancing clarity and emphasizing key points for better understanding.
 
 Bitonic Sort CUDA:  
-![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")  
+![Bitonic Sort CUDA Graph](Images/Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")  
 
 Bitonic Sort MPI:  
-![Bitonic Sort MPI Graph](Graphs/bitonic_mpi.PNG "Bitonic Sort MPI Graph")  
+![Bitonic Sort MPI Graph](Images/Graphs/bitonic_mpi.PNG "Bitonic Sort MPI Graph")  
 
 Quick Sort CUDA:  
-![Quick Sort CUDA Graph](Graphs/quick_cuda.PNG "Quick Sort CUDA Graph")  
+![Quick Sort CUDA Graph](Images/Graphs/quick_cuda.PNG "Quick Sort CUDA Graph")  
 
 Quick Sort MPI:  
-![Quick Sort MPI Graph](Graphs/quick_mpi.PNG "Quick Sort MPI Graph")  
+![Quick Sort MPI Graph](Images/Graphs/quick_mpi.PNG "Quick Sort MPI Graph")  
 
 Merge Sort CUDA:  
-![Merge Sort CUDA Graph](Graphs/merge_cuda.PNG "Merge Sort CUDA Graph")  
+![Merge Sort CUDA Graph](Images/Graphs/merge_cuda.PNG "Merge Sort CUDA Graph")  
 
 Merge Sort MPI:  
-![Merge Sort MPI Graph](Graphs/merge_mpi.PNG "Merge Sort MPI Graph")  
+![Merge Sort MPI Graph](Images/Graphs/merge_mpi.PNG "Merge Sort MPI Graph")  
 
 Radix Sort CUDA:  
-![Radix Sort CUDA Graph](Graphs/radix_cuda.PNG "Radix Sort CUDA Graph")  
+![Radix Sort CUDA Graph](Images/Graphs/radix_cuda.PNG "Radix Sort CUDA Graph")  
 
 Radix Sort MPI:  
-![Radix Sort MPI Graph](Graphs/radix_mpi.PNG "Radix Sort MPI Graph")  
+![Radix Sort MPI Graph](Images/Graphs/radix_mpi.PNG "Radix Sort MPI Graph")  
 
 
 ### 4a. Varying parameters
@@ -313,3 +313,9 @@ CUDA num_threads: 64, 128, 256, 512, 10124
     - Total time
     - Variance time/rank
 
+
+We successfully extracted performance metrics from each algorithm's Caliper files, as illustrated below with the bitonic sort example and in our Jupyter code analysis. Our primary focus was on graphing the average execution time of each algorithm's main function. However, our initial experience with Thicket posed challenges in visualizing additional features, and we are still exploring its full capabilities. As previously mentioned, our analysis revealed a distinct trend: a modest increase in runtime with fewer processors or threads, followed by a substantial decrease, culminating in near-zero runtimes with a higher number of processors/threads. In the upcoming week, we aim to expand our graphing efforts to include more comprehensive performance metrics, further enriching our analysis.
+
+
+Bitonic Sort CUDA Data:  
+![Bitonic Sort CUDA Data Example](Images/Graphs/bitonic_cuda_data.PNG "Bitonic Sort CUDA Data Example")  
