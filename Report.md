@@ -248,6 +248,13 @@ The Bitonic Sort algorithm has an O(logn) time complexity. However when it comes
 In conclusion, based on these analytical time complexities when parallelized, it is clear to see why quicksort would be the most optimal. Parallelizing these algorithms as a whole will greatly reduce run times of the algorithms.
 
 ## 4. Performance evaluation
+We observed a notable trend in our analysis: as the number of processes increased, there was a corresponding decrease in performance time. This effect was particularly pronounced at lower process counts, where the runtime remained significantly high. This phenomenon can be attributed to the limited impact of parallelization at a smaller scale, where the overhead may not be justified by the performance gains.
+
+Our primary objective was to evaluate the impact of escalating the number of processes or threads on the average processing time of parallelized sorting algorithms. To maintain consistency in our analysis, we ensured that each algorithm was tested with arrays of identical input sizes.
+
+Currently, our testing has been confined to arrays with randomly generated values. However, to gain a more comprehensive understanding of performance trends, future tests should include arrays with already sorted and reverse-ordered data. The randomness of our current data is influenced by specific seeds, reinforcing the notion that exploring different data types could yield further insights. It’s also possible that certain algorithms may demonstrate enhanced efficiency with specific types of datasets."
+
+This revised version presents the same information in a more structured and formal tone, enhancing clarity and emphasizing key points for better understanding.
 
 Bitonic Sort CUDA:  
 ![Bitonic Sort CUDA Graph](Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")  
@@ -275,10 +282,11 @@ Radix Sort MPI:
 
 
 ### 4a. Varying parameters
-We opted for an input size of 2^16 for our algorithms, primarily due to performance constraints encountered on the Grace Cluster, which included significant slowdowns and frequent node terminations. Notably, for our implementation of Quicksort using MPI, we managed to extend the input size up to 2^22, showcasing its relative efficiency under these conditions.
+We opted for an input size of 2^16 for our algorithms, primarily due to performance constraints encountered on the Grace Cluster, which included significant slowdowns and frequent node terminations. Notably, for our implementation of Quicksort using MPI, we managed to extend the input size up to 2^22, showcasing its relative efficiency under these conditions. In the upcoming week, we are set to employ a broader range of InputTypes, including Sorted & Reverse Sorted, to enhance the diversity and depth of our testing.
+
 
 Bitonic Sort:  
-InputType: Sorted  
+InputType: Random  
 MPI num_procs: 2, 4, 8, 16, 32, 64  
 CUDA num_threads: 64, 128, 256, 512  
 
@@ -298,4 +306,10 @@ MPI num_procs: 2, 4, 8, 16, 32, 64
 CUDA num_threads: 64, 128, 256, 512, 10124  
 
 ### 4b. Performance metrics
-- We initially measured the average time per rank, and we plan to augment our statistical analysis by incorporating additional metrics in the coming week.
+- `Time`
+    - Min time/rank
+    - Max time/rank
+    - Avg time/rank
+    - Total time
+    - Variance time/rank
+
