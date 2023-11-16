@@ -272,3 +272,30 @@ Radix Sort CUDA:
 
 Radix Sort MPI:  
 ![Radix Sort MPI Graph](Graphs/radix_mpi.PNG "Radix Sort MPI Graph")  
+
+
+### 4a. Varying parameters
+We opted for an input size of 2^16 for our algorithms, primarily due to performance constraints encountered on the Grace Cluster, which included significant slowdowns and frequent node terminations. Notably, for our implementation of Quicksort using MPI, we managed to extend the input size up to 2^22, showcasing its relative efficiency under these conditions.
+
+Bitonic Sort:  
+InputType: Sorted  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256, 512  
+
+Quick Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256  
+
+Merge Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32  
+CUDA num_threads: 64, 128, 256, 512  
+
+Radix Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256, 512, 10124  
+
+### 4b. Performance metrics
+- We initially measured the average time per rank, and we plan to augment our statistical analysis by incorporating additional metrics in the coming week.
