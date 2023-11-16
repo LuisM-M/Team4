@@ -9,9 +9,6 @@
 #include <cuda.h>
 #include <adiak.hpp>
 
-#define MAX_THREADS	128 
-#define N		512
-
 int*	r_values;
 int*	d_values;
 
@@ -25,7 +22,7 @@ const char *data_init = "data_init";
 const char *correctness_check = "correctness_check";
 
  // initialize data set
-void Init(int* values) {
+void Init(int* values, int N) {
 	srand( time(NULL) );
     for (int x = 0; x < N; ++x) {
         values[x] = rand() % 100;
@@ -33,7 +30,7 @@ void Init(int* values) {
 }
 
 // Kernel function
-__global__ static void quicksort(int* values) {
+__global__ static void quicksort(int* values, int N) {
     #define MAX_LEVELS	300
 	int pivot, L, R;
 	int idx =  threadIdx.x + blockIdx.x * blockDim.x;
@@ -83,8 +80,11 @@ __global__ static void quicksort(int* values) {
     CALI_CXX_MARK_FUNCTION;
     cali::ConfigManager mgr;
     mgr.start();
-    
-	printf("./quicksort starting with %d numbers...\n", N);
+    int N = atoi(argv[1]);
+    int MAX_THREADS = atoi(argv[2]);
+
+	// printf("./quicksort starting with %d numbers...\n", N);
+    // printf("./quicksort starting with %d MAXTHREAD...\n", MAX_THREADS);
  	size_t size = N * sizeof(int);
  	
  	// allocate host memory
@@ -100,7 +100,7 @@ __global__ static void quicksort(int* values) {
                 
 	//for (int i = 0; i < 5; ++i) {
     CALI_MARK_BEGIN(data_init);
-    Init(r_values);
+    Init(r_values, N);
     CALI_MARK_END(data_init);
 
     // copy data to device
@@ -118,7 +118,7 @@ __global__ static void quicksort(int* values) {
     // execute kernel
     CALI_MARK_BEGIN("comp");
     CALI_MARK_BEGIN("comp_large");
-    quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values);
+    quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values, N);
     cudaDeviceSynchronize();
     CALI_MARK_END("comp_large");
     CALI_MARK_END("comp");
