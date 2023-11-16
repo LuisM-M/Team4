@@ -342,9 +342,9 @@ int main(int argc, char *argv[])
     }
     
 
-    free(numbers);
-    MPI_Finalize();
-    return 0;
+    // free(numbers);
+    // MPI_Finalize();
+    // return 0;
 
     adiak::init(NULL);
     adiak::launchdate();                                         // launch date of the job
@@ -362,4 +362,10 @@ int main(int argc, char *argv[])
     // adiak::value("num_blocks", num_blocks);                      // The number of CUDA blocks
     adiak::value("group_num", "4");                     // The number of your group (integer, e.g., 1, 10)
     adiak::value("implementation_source", "Online"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
+
+    MPI_Finalize();
+    return 0;
+    mgr.stop();
+    mgr.flush();
+
 }
