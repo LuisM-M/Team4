@@ -317,6 +317,9 @@ CUDA num_threads: 64, 128, 256, 512, 10124
 We successfully extracted performance metrics from each algorithm's Caliper files, as illustrated below with the bitonic sort example and in our Jupyter code analysis. Our primary focus was on graphing the average execution time of each algorithm's main function. However, our initial experience with Thicket posed challenges in visualizing additional features, and we are still exploring its full capabilities. As previously mentioned, our analysis revealed a distinct trend: a modest increase in runtime with fewer processors or threads, followed by a substantial decrease, culminating in near-zero runtimes with a higher number of processors/threads. In the upcoming week, we aim to expand our graphing efforts to include more comprehensive performance metrics, further enriching our analysis.
 
 
-Bitonic Sort CUDA Data:  
+Bitonic Sort CUDA Data Example:  
 ![Bitonic Sort CUDA Data Example](Images/bitonic_cuda_data.PNG "Bitonic Sort CUDA Data Example")  
+
+
+See our Jupyter code for more of our performance metric data!  
 
