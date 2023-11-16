@@ -115,6 +115,23 @@ int main(int argc, char** argv) {
 	free(sub_array);
 	free(tmp_array);
 
+    adiak::init(NULL);
+    adiak::user();
+    adiak::launchdate();
+    adiak::libraries();
+    adiak::cmdline();
+    adiak::clustername();
+    adiak::value("Algorithm", "Merge Sort");
+    adiak::value("ProgrammingModel", "MPI");
+    adiak::value("Datatype", "int");
+    adiak::value("SizeOfDatatype", "4"); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
+    adiak::value("InputSize", n); // The number of elements in input dataset (1000)
+    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", etc.
+    adiak::value("num_procs", world_size);
+    adiak::value("group_num", "4");
+    adiak::value("implementation_source", "Online"); 
+
+
 	/********** Finalize MPI **********/
 	CALI_MARK_BEGIN(comm);
     CALI_MARK_BEGIN(MPI_barrier);
