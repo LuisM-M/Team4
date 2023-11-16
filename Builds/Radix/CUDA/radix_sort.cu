@@ -1,253 +1,148 @@
-// Author: Jack Liu
-// Username: jackfly
-// Source: https://github.com/jackfly/radix-sort-cuda
+// source: AI
+#include <cuda.h>
+#include <caliper/cali.h>
+#include <iostream>
+#include <cuda.h>
+#include <thrust/scan.h>
+#include <thrust/device_vector.h>
+#include <cstdlib>
+#include <ctime>
+#include <adiak.hpp>
 
-#include "radix_sort.h"
+const char* comm = "comm";
+const char* comm_large = "comm_large";
+const char* comp = "comp";
+const char* comp_large = "comp_large";
+const char* comp_small = "comp_small";
+const char* data_init = "data_init";
+const char* cudaMemcpy_htd = "cudaMemcpy_htd";
+const char* cudaMemcpy_dth = "cudaMemcpy_dth";
 
-
-#define MAX_BLOCK_SZ 1024
-#define NUM_BANKS 32
-#define LOG_NUM_BANKS 5
-
-
-#define CONFLICT_FREE_OFFSET(n) ((n) >> LOG_NUM_BANKS)
-
-__global__ void gpu_radix_sort_local(unsigned int* d_out_sorted,
-    unsigned int* d_prefix_sums,
-    unsigned int* d_block_sums,
-    unsigned int input_shift_width,
-    unsigned int* d_in,
-    unsigned int d_in_len,
-    unsigned int max_elems_per_block)
-{
-
-    extern __shared__ unsigned int shmem[];
-    unsigned int* s_data = shmem;
-    // s_mask_out[] will be scanned in place
-    unsigned int s_mask_out_len = max_elems_per_block + (max_elems_per_block >> LOG_NUM_BANKS);
-    unsigned int* s_mask_out = &s_data[max_elems_per_block];
-    unsigned int* s_merged_scan_mask_out = &s_mask_out[s_mask_out_len];
-    unsigned int* s_mask_out_sums = &s_merged_scan_mask_out[max_elems_per_block];
-    unsigned int* s_scan_mask_out_sums = &s_mask_out_sums[4];
-
-    unsigned int thid = threadIdx.x;
-
-    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
-    if (cpy_idx < d_in_len)
-        s_data[thid] = d_in[cpy_idx];
-    else
-        s_data[thid] = 0;
-
-    __syncthreads();
-
-    unsigned int t_data = s_data[thid];
-    unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
-
-    for (unsigned int i = 0; i < 4; ++i)
-    {
-        // Zero out s_mask_out
-        s_mask_out[thid] = 0;
-        
-        if (thid + max_elems_per_block < s_mask_out_len)
-            s_mask_out[thid + max_elems_per_block] = 0;
-        __syncthreads();
-
-        // build bit mask output
-        bool val_equals_i = false;
-        if (cpy_idx < d_in_len)
-        {
-            val_equals_i = t_2bit_extract == i;
-            s_mask_out[thid + CONFLICT_FREE_OFFSET(thid)] = val_equals_i;
-        }
-        __syncthreads();
-
-        // scan bit mask output
-        // Upsweep/Reduce step
-        bool t_active = thid < (blockDim.x / 2);
-        int offset = 1;
-        for (int d = max_elems_per_block >> 1; d > 0; d >>= 1)
-        {
-            __syncthreads();
-
-            if (t_active && (thid < d))
-            {
-                int ai = offset * ((thid << 1) + 1) - 1;
-                int bi = offset * ((thid << 1) + 2) - 1;
-                ai += CONFLICT_FREE_OFFSET(ai);
-                bi += CONFLICT_FREE_OFFSET(bi);
-
-                s_mask_out[bi] += s_mask_out[ai];
-            }
-            offset <<= 1;
-        }
-
-        // Save the total sum on the global block sums array
-        // Then clear the last element on the shared memory
-        if (thid == 0)
-        {
-            //unsigned int total_sum_idx = (unsigned int) fmin();
-            unsigned int total_sum = s_mask_out[max_elems_per_block - 1
-                + CONFLICT_FREE_OFFSET(max_elems_per_block - 1)];
-            s_mask_out_sums[i] = total_sum;
-            d_block_sums[i * gridDim.x + blockIdx.x] = total_sum;
-            s_mask_out[max_elems_per_block - 1
-                + CONFLICT_FREE_OFFSET(max_elems_per_block - 1)] = 0;
-        }
-        __syncthreads();
-
-        // Downsweep step
-        for (int d = 1; d < max_elems_per_block; d <<= 1)
-        {
-            offset >>= 1;
-            __syncthreads();
-
-            if (t_active && (thid < d))
-            {
-                int ai = offset * ((thid << 1) + 1) - 1;
-                int bi = offset * ((thid << 1) + 2) - 1;
-                ai += CONFLICT_FREE_OFFSET(ai);
-                bi += CONFLICT_FREE_OFFSET(bi);
-
-                unsigned int temp = s_mask_out[ai];
-                s_mask_out[ai] = s_mask_out[bi];
-                s_mask_out[bi] += temp;
-            }
-        }
-        __syncthreads();
-
-        if (val_equals_i && (cpy_idx < d_in_len))
-        {
-            s_merged_scan_mask_out[thid] = s_mask_out[thid + CONFLICT_FREE_OFFSET(thid)];
-        }
-        __syncthreads();
-    }
-    
-    __syncthreads();
-
-    // Scan mask output sums
-    if (thid == 0)
-    {
-        unsigned int run_sum = 0;
-        for (unsigned int i = 0; i < 4; ++i)
-        {
-            s_scan_mask_out_sums[i] = run_sum;
-            run_sum += s_mask_out_sums[i];
-        }
-    }
-    __syncthreads();
-
-    if (cpy_idx < d_in_len)
-    {
-        // Calculate the new indices of the input elements for sorting
-        unsigned int new_pos = s_merged_scan_mask_out[thid] + s_scan_mask_out_sums[t_2bit_extract];
-        //if (new_ai >= 1024)
-        //    new_ai = 0;
-        unsigned int t_prefix_sum = s_merged_scan_mask_out[thid];
-        
-        __syncthreads();
-
-        // Shuffle the block's input elements to actually sort them
-        s_data[new_pos] = t_data;
-        s_merged_scan_mask_out[new_pos] = t_prefix_sum;
-        
-        __syncthreads();
-
-        // copy block-wise sort results to global 
-        // then copy block-wise prefix sum results to global memory
-        d_prefix_sums[cpy_idx] = s_merged_scan_mask_out[thid];
-        d_out_sorted[cpy_idx] = s_data[thid];
+// Count digit occurrences kernel
+__global__ void countDigitOccurrencesKernel(int* input, int* count, int numElements, int bit) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < numElements) {
+        int digit = (input[index] >> bit) & 1;
+        atomicAdd(&count[digit], 1);
     }
 }
 
-__global__ void gpu_glbl_shuffle(unsigned int* d_out,
-    unsigned int* d_in,
-    unsigned int* d_scan_block_sums,
-    unsigned int* d_prefix_sums,
-    unsigned int input_shift_width,
-    unsigned int d_in_len,
-    unsigned int max_elems_per_block)
-{
-
-    unsigned int thid = threadIdx.x;
-    unsigned int cpy_idx = max_elems_per_block * blockIdx.x + thid;
-
-    if (cpy_idx < d_in_len)
-    {
-        unsigned int t_data = d_in[cpy_idx];
-        unsigned int t_2bit_extract = (t_data >> input_shift_width) & 3;
-        unsigned int t_prefix_sum = d_prefix_sums[cpy_idx];
-        unsigned int data_glbl_pos = d_scan_block_sums[t_2bit_extract * gridDim.x + blockIdx.x]
-            + t_prefix_sum;
-        __syncthreads();
-        d_out[data_glbl_pos] = t_data;
+// Kernel for reordering elements based on computed positions
+__global__ void reorderKernel(int* input, int* output, int* count, int* prefixSum, int numElements, int bit) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < numElements) {
+        int digit = (input[index] >> bit) & 1;
+        int pos = prefixSum[digit] + atomicAdd(&count[digit], 1);
+        output[pos] = input[index];
     }
 }
 
-void radix_sort(unsigned int* const d_out,
-    unsigned int* const d_in,
-    unsigned int d_in_len,
-    unsigned int num_threads)
-{
-    unsigned int block_sz = num_threads;
-    unsigned int max_elems_per_block = block_sz;
-    unsigned int grid_sz = d_in_len / max_elems_per_block;
+// Host function for radix sort
+void radixSort(int* d_input, int* d_output, int numElements) {
+    int* d_count;
+    cudaMalloc(&d_count, 2 * sizeof(int));
+    int* d_prefixSum;
+    cudaMalloc(&d_prefixSum, 2 * sizeof(int));
     
-    if (d_in_len % max_elems_per_block != 0)
-        grid_sz += 1;
-    // initialize the prefix sum variable
-    unsigned int* d_prefix_sums;
-    unsigned int d_prefix_sums_len = d_in_len;
-    cudaMalloc(&d_prefix_sums, sizeof(unsigned int) * d_prefix_sums_len);
-    cudaMemset(d_prefix_sums, 0, sizeof(unsigned int) * d_prefix_sums_len);
+    dim3 blockSize(256);
+    dim3 gridSize((numElements + blockSize.x - 1) / blockSize.x);
 
-    unsigned int* d_block_sums;
-    unsigned int d_block_sums_len = 4 * grid_sz; // 4-way split
-    cudaMalloc(&d_block_sums, sizeof(unsigned int) * d_block_sums_len);
-    cudaMemset(d_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+    for (int bit = 0; bit < 32; ++bit) {
+        cudaMemset(d_count, 0, 2 * sizeof(int));
+        
+        // Count digit occurrences
+        countDigitOccurrencesKernel<<<gridSize, blockSize>>>(d_input, d_count, numElements, bit);
+        cudaDeviceSynchronize();
 
-    unsigned int* d_scan_block_sums;
-    cudaMalloc(&d_scan_block_sums, sizeof(unsigned int) * d_block_sums_len);
-    cudaMemset(d_scan_block_sums, 0, sizeof(unsigned int) * d_block_sums_len);
+        // Copy count to host and compute prefix sum
+        int h_count[2];
+        cudaMemcpy(h_count, d_count, 2 * sizeof(int), cudaMemcpyDeviceToHost);
+        thrust::exclusive_scan(h_count, h_count + 2, h_count);
+        cudaMemcpy(d_prefixSum, h_count, 2 * sizeof(int), cudaMemcpyHostToDevice);
 
-    unsigned int s_data_len = max_elems_per_block;
-    unsigned int s_mask_out_len = max_elems_per_block + (max_elems_per_block / NUM_BANKS);
-    unsigned int s_merged_scan_mask_out_len = max_elems_per_block;
-    unsigned int s_mask_out_sums_len = 4; // 4-way split
-    unsigned int s_scan_mask_out_sums_len = 4;
-    unsigned int shmem_sz = (s_data_len 
-                            + s_mask_out_len
-                            + s_merged_scan_mask_out_len
-                            + s_mask_out_sums_len
-                            + s_scan_mask_out_sums_len)
-                            * sizeof(unsigned int);
+        // Reorder elements
+        reorderKernel<<<gridSize, blockSize>>>(d_input, d_output, d_count, d_prefixSum, numElements, bit);
+        cudaDeviceSynchronize();
 
-
-    // for every 2 bits from LSB to MSB:
-    //  block-wise radix sort (write blocks back to global memory)
-    for (unsigned int shift_width = 0; shift_width <= 30; shift_width += 2)
-    {
-        gpu_radix_sort_local<<<grid_sz, block_sz, shmem_sz>>>(d_out, 
-                                                                d_prefix_sums, 
-                                                                d_block_sums, 
-                                                                shift_width, 
-                                                                d_in, 
-                                                                d_in_len, 
-                                                                max_elems_per_block);
-
-        // scan global block sum array
-        sum_scan_blelloch(d_scan_block_sums, d_block_sums, d_block_sums_len);
-
-        // scatter/shuffle block-wise sorted array to final positions
-        gpu_glbl_shuffle<<<grid_sz, block_sz>>>(d_in, 
-                                                    d_out, 
-                                                    d_scan_block_sums, 
-                                                    d_prefix_sums, 
-                                                    shift_width, 
-                                                    d_in_len, 
-                                                    max_elems_per_block);
+        // Swap input and output for next iteration
+        std::swap(d_input, d_output);
     }
-    cudaMemcpy(d_out, d_in, sizeof(unsigned int) * d_in_len, cudaMemcpyDeviceToDevice);
-    cudaFree(d_scan_block_sums);
-    cudaFree(d_block_sums);
-    cudaFree(d_prefix_sums);
+
+    cudaFree(d_count);
+    cudaFree(d_prefixSum);
+}
+
+
+// Include the radixSort function and other necessary kernels from previous steps
+
+// Function to generate random array
+void generateRandomArray(int* array, int size) {
+    srand(time(NULL));
+    for (int i = 0; i < size; ++i) {
+        array[i] = rand() % 10000; // Random integers in the range [0, size)
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cerr << "Usage: " << argv[0] << " [numThreads] [arraySize]" << std::endl;
+        return 1;
+    }
+
+    int numThreads = atoi(argv[1]);
+    int arraySize = atoi(argv[2]);
+
+    // Generate random array
+    int* h_input = new int[arraySize];
+    generateRandomArray(h_input, arraySize);
+
+    // Allocate device memory
+    int* d_input;
+    cudaMalloc(&d_input, arraySize * sizeof(int));
+    int* d_output;
+    cudaMalloc(&d_output, arraySize * sizeof(int));
+
+    // Copy data to device
+    cudaMemcpy(d_input, h_input, arraySize * sizeof(int), cudaMemcpyHostToDevice);
+
+    // Start Caliper instrumentation
+    cali::Annotation("radix_sort").begin();
+
+    // Perform radix sort
+    radixSort(d_input, d_output, arraySize);
+
+    // End Caliper instrumentation
+    cali::Annotation("radix_sort").end();
+
+    // Copy sorted data back to host
+    cudaMemcpy(h_input, d_output, arraySize * sizeof(int), cudaMemcpyDeviceToHost);
+
+    // Output results (for debugging, you may want to print only a few elements)
+    for (int i = 0; i < 10; ++i) {
+        std::cout << h_input[i] << " ";
+    }
+    std::cout << std::endl;
+
+    // Clean up
+    delete[] h_input;
+    cudaFree(d_input);
+    cudaFree(d_output);
+
+    adiak::init(NULL);
+    adiak::launchdate();    // launch date of the job
+    adiak::libraries();     // Libraries used
+    adiak::cmdline();       // Command line used to launch the job
+    adiak::clustername();   // Name of the cluster
+    adiak::value("Algorithm", "Radix"); // The name of the algorithm you are using (e.g., "MergeSort", "BitonicSort")
+    adiak::value("ProgrammingModel", "CUDA"); // e.g., "MPI", "CUDA", "MPIwithCUDA"
+    adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
+    adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
+    adiak::value("InputSize", arraySize); // The number of elements in input dataset (1000)
+    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("num_procs", 0); // The number of processors (MPI ranks)
+    adiak::value("num_threads", numThreads); // The number of CUDA or OpenMP threads
+    adiak::value("num_blocks", arraySize/numThreads); // The number of CUDA blocks 
+    adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
+    adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
+    return 0;
 }
