@@ -297,7 +297,7 @@ CUDA num_threads: 64, 128, 256
 
 Merge Sort:  
 InputType: Random  
-MPI num_procs: 2, 4, 8, 16, 32  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
 CUDA num_threads: 64, 128, 256, 512  
 
 Radix Sort:  
