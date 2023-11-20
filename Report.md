@@ -247,3 +247,79 @@ The time complexity of Radix Sort is O(w*n) for the serial/sequential version, w
 The Bitonic Sort algorithm has an O(logn) time complexity. However when it comes to the parallelized algorithm implementation with CUDA theoretically should be O(log (n/p)) where p is the number of processors. 
 In conclusion, based on these analytical time complexities when parallelized, it is clear to see why quicksort would be the most optimal. Parallelizing these algorithms as a whole will greatly reduce run times of the algorithms.
 
+## 4. Performance evaluation
+We observed a notable trend in our analysis: as the number of processes increased, there was a corresponding decrease in performance time. This effect was particularly pronounced at lower process counts, where the runtime remained significantly high. This phenomenon can be attributed to the limited impact of parallelization at a smaller scale, where the overhead may not be justified by the performance gains.
+
+Our primary objective was to evaluate the impact of escalating the number of processes or threads on the average processing time of parallelized sorting algorithms. To maintain consistency in our analysis, we ensured that each algorithm was tested with arrays of identical input sizes.
+
+Currently, our testing has been confined to arrays with randomly generated values. However, to gain a more comprehensive understanding of performance trends, future tests should include arrays with already sorted and reverse-ordered data. The randomness of our current data is influenced by specific seeds, reinforcing the notion that exploring different data types could yield further insights. It’s also possible that certain algorithms may demonstrate enhanced efficiency with specific types of datasets."
+
+This revised version presents the same information in a more structured and formal tone, enhancing clarity and emphasizing key points for better understanding.
+
+Bitonic Sort CUDA:  
+![Bitonic Sort CUDA Graph](Images/Graphs/bitonic_cuda.PNG "Bitonic Sort CUDA Graph")  
+
+Bitonic Sort MPI:  
+![Bitonic Sort MPI Graph](Images/Graphs/bitonic_mpi.PNG "Bitonic Sort MPI Graph")  
+
+Quick Sort CUDA:  
+![Quick Sort CUDA Graph](Images/Graphs/quick_cuda.PNG "Quick Sort CUDA Graph")  
+
+Quick Sort MPI:  
+![Quick Sort MPI Graph](Images/Graphs/quick_mpi.PNG "Quick Sort MPI Graph")  
+
+Merge Sort CUDA:  
+![Merge Sort CUDA Graph](Images/Graphs/merge_cuda.PNG "Merge Sort CUDA Graph")  
+
+Merge Sort MPI:  
+![Merge Sort MPI Graph](Images/Graphs/merge_mpi.PNG "Merge Sort MPI Graph")  
+
+Radix Sort CUDA:  
+![Radix Sort CUDA Graph](Images/Graphs/radix_cuda.PNG "Radix Sort CUDA Graph")  
+
+Radix Sort MPI:  
+![Radix Sort MPI Graph](Images/Graphs/radix_mpi.PNG "Radix Sort MPI Graph")  
+
+
+### 4a. Varying parameters
+We opted for an input size of 2^16 for our algorithms, primarily due to performance constraints encountered on the Grace Cluster, which included significant slowdowns and frequent node terminations. Notably, for our implementation of Quicksort using MPI, we managed to extend the input size up to 2^22, showcasing its relative efficiency under these conditions. In the upcoming week, we are set to employ a broader range of InputTypes, including Sorted & Reverse Sorted, to enhance the diversity and depth of our testing.
+
+
+Bitonic Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256, 512  
+
+Quick Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256  
+
+Merge Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256, 512  
+
+Radix Sort:  
+InputType: Random  
+MPI num_procs: 2, 4, 8, 16, 32, 64  
+CUDA num_threads: 64, 128, 256, 512, 10124  
+
+### 4b. Performance metrics
+- `Time`
+    - Min time/rank
+    - Max time/rank
+    - Avg time/rank
+    - Total time
+    - Variance time/rank
+
+
+We successfully extracted performance metrics from each algorithm's Caliper files, as illustrated below with the bitonic sort example and in our Jupyter code analysis. Our primary focus was on graphing the average execution time of each algorithm's main function. However, our initial experience with Thicket posed challenges in visualizing additional features, and we are still exploring its full capabilities. As previously mentioned, our analysis revealed a distinct trend: a modest increase in runtime with fewer processors or threads, followed by a substantial decrease, culminating in near-zero runtimes with a higher number of processors/threads. In the upcoming week, we aim to expand our graphing efforts to include more comprehensive performance metrics, further enriching our analysis.
+
+
+Bitonic Sort CUDA Data Example:  
+![Bitonic Sort CUDA Data Example](Images/bitonic_cuda_data.PNG "Bitonic Sort CUDA Data Example")  
+
+
+See our Jupyter code for more of our performance metric data!  
+
