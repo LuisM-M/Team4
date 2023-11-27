@@ -1,5 +1,6 @@
 #!/bin/bash
 ##ENVIRONMENT SETTINGS; CHANGE WITH CAUTION
+#SBATCH --ntasks-per-node=32
 #SBATCH --export=NONE            #Do not propagate environment
 #SBATCH --get-user-env=L         #Replicate login environment
 #

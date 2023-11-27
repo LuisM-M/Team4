@@ -9,6 +9,7 @@
 #include <caliper/cali-manager.h>
 #include <adiak.hpp>
 
+int num_vals, rank, comm_size;
 double start, end;
 const char *data_init = "data_init"; //
 const char *comm = "comm";
@@ -72,9 +73,11 @@ int main(int argc, char** argv) {
     // Initialization and argument checking remains the same
     // MARK FUNCTION
     CALI_CXX_MARK_FUNCTION;
+    cali::ConfigManager mgr;
+    mgr.start();
     CALI_MARK_BEGIN(data_init);
     MPI_Init(&argc, &argv);
-    int num_vals, rank, comm_size;
+    
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
@@ -146,6 +149,8 @@ int main(int argc, char** argv) {
     adiak::value("group_num", 4); // The number of your group (integer, e.g., 1, 10)
     adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm; choices: ("Online", "AI", "Handwritten").
     MPI_Finalize();
+    mgr.stop();
+    mgr.flush();
 
     return 0;
 }
