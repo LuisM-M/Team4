@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(bitonic LANGUAGES CUDA CXX)
+project(radix LANGUAGES CUDA CXX)
 
 find_package(MPI REQUIRED)
 find_package(caliper REQUIRED)
 find_package(adiak REQUIRED)
 
-add_executable(radix_sort radix_sort.cu)
+set(SOURCE_FILES
+  main.cu
+  scan.cu)
+add_executable(radix_sort ${SOURCE_FILES})
 
 message(STATUS "MPI includes : ${MPI_INCLUDE_PATH}")
 message(STATUS "CUDA includes : ${CUDA_INCLUDE_DIRS}")
