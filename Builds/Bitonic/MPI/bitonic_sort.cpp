@@ -95,8 +95,8 @@ int nextPow2(int n)
     return n;
 }
 
-// return pointer to howMany random numbers.
-int *createNumbers(int howMany)
+// return pointer to howMany random numbers. *************************************RANDOM GENERATOR *************************************
+int *createRNumbers(int howMany)
 {
     // CALI_MARK_BEGIN(data_init); // Begin data initialization marker
     int *numbers = (int *)malloc(sizeof(int) * howMany);
@@ -113,6 +113,22 @@ int *createNumbers(int howMany)
         numbers[i] = rand();
 
     // CALI_MARK_END(data_init); // End data initialization marker
+    return numbers;
+}
+
+// Function to create and return an array of sorted numbers *************************************SORTED GENERATOR *************************************
+int *createSNumbers(int howMany) {
+    int *numbers = (int *)malloc(sizeof(int) * howMany);
+
+    if (numbers == NULL) {
+        printf("Error: malloc failed.\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < howMany; i++) {
+        numbers[i] = i;  // or any other formula to generate a sorted sequence
+    }
+
     return numbers;
 }
 
@@ -310,7 +326,7 @@ int main(int argc, char *argv[])
 
     CALI_MARK_BEGIN(data_init);
     // each process creates a list of random numbers.
-    int *numbers = createNumbers(howMany);
+    int *numbers = createRNumbers(howMany);
     CALI_MARK_END(data_init);
     // printNumbers(numbers, howMany);
     CALI_MARK_BEGIN(comm);
@@ -356,7 +372,7 @@ int main(int argc, char *argv[])
     adiak::value("Datatype", "int");                          // The datatype of input elements (e.g., double, int, float)
     adiak::value("SizeOfDatatype", "4");              // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", howMany);                        // The number of elements in input dataset (1000)
-    adiak::value("InputType", "Sorted");                        // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("InputType", "Random");                        // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", numTasks);                        // The number of processors (MPI ranks)
     // adiak::value("num_threads", );                    // The number of CUDA or OpenMP threads
     // adiak::value("num_blocks", num_blocks);                      // The number of CUDA blocks
