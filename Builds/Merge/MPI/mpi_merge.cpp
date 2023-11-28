@@ -42,11 +42,17 @@ int main(int argc, char** argv) {
 	int *original_array = (int*)malloc(n * sizeof(int));
 	
 	CALI_MARK_BEGIN(data_init);
-	int c;
-	srand(time(NULL));
-	for (c = 0; c < n; c++) {
-    	original_array[c] = rand() % n;
-	}
+	// int c;
+	// srand(time(NULL));
+	// for (c = 0; c < n; c++) {
+    // 	original_array[c] = rand() % n;
+	// }
+
+	// sorted input
+    for (int i = 0; i < n; ++i) {
+        original_array[i] = i;
+        // printf("%d ", nums[i]);
+    }
 	CALI_MARK_END(data_init);
 	/********** Initialize MPI **********/
 	int world_rank;
@@ -126,7 +132,7 @@ int main(int argc, char** argv) {
     adiak::value("Datatype", "int");
     adiak::value("SizeOfDatatype", "4"); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", n); // The number of elements in input dataset (1000)
-    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", etc.
+    adiak::value("InputType", "Sorted"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", etc.
     adiak::value("num_procs", world_size);
     adiak::value("group_num", "4");
     adiak::value("implementation_source", "Online"); 

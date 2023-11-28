@@ -8,8 +8,8 @@
 #include <caliper/cali.h>
 #include <caliper/cali-manager.h>
 #include <adiak.hpp>
+#include <fstream>
 
-int num_vals, rank, comm_size;
 double start, end;
 const char *data_init = "data_init"; //
 const char *comm = "comm";
@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
     mgr.start();
     CALI_MARK_BEGIN(data_init);
     MPI_Init(&argc, &argv);
-    
+    int num_vals, rank, comm_size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
@@ -88,11 +88,26 @@ int main(int argc, char** argv) {
 
     if (rank == 0) {
         // Initialize and populate arr[]...
-        for(int i = 0; i < num_vals; i++) {
-            arr[i] = (rand() % 10000) + 1;
+        if (argc < 3) {
+            for(int i = 0; i < num_vals; i++) {
+                arr[i] = (rand() % 10000) + 1;
+            }
         }
-       
+        else {
+            std::cout << "FILE READING" << std::endl;
+            std::ifstream file(argv[2]);
+
+            if (!file.is_open()) {
+                std::cerr << "Error opening file!" << std::endl;
+            }
+
+            for (int i = 0; i < num_vals; i++) {
+                file >> arr[i];
+            }
+            file.close();
+        }
     }
+
     MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
     CALI_MARK_END(data_init);
 
@@ -116,12 +131,24 @@ int main(int argc, char** argv) {
             countSort(arr, num_vals, exp);
         }
 
-        // Display the sorted array
-        std::cout << "Sorted array: ";
-        for (int i = 0; i < num_vals; i++) {
-            std::cout << arr[i] << " ";
+        // // Display the sorted array
+        // std::cout << "Sorted array: ";
+        // for (int i = 0; i < num_vals; i++) {
+        //     std::cout << arr[i] << " ";
+        // }
+        // std::cout << std::endl;
+        // check sorted array
+        bool sorted = true;
+        for (int i = 1; i < num_vals; i++) {
+            if (arr[i] < arr[i-1]) {
+                std::cout << "NOT SORTED" << std::endl;
+                sorted = false;
+                break;
+            }
         }
-        std::cout << std::endl;
+        if (sorted) {
+            std::cout << "Sorted" << std::endl;
+        }
 
         // Timing information
         std::cout << "Time taken for sorting: " << end - start << " seconds" << std::endl;
