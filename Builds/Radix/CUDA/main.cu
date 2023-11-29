@@ -15,6 +15,7 @@
 #include <time.h>
 #include <cuda.h>
 #include <caliper/cali.h>
+#include <caliper/cali-manager.h>
 #include <iostream>
 #include <cuda.h>
 #include <thrust/scan.h>
@@ -311,10 +312,21 @@ void radixsort_gpu(unsigned int* h_in, unsigned int num, unsigned int num_thread
     CALI_MARK_END(comp);
 
     // printed array
-    for (auto i = 0; i < num; i++) {
-        cout << out_gpu[i] << " ";
+    // for (auto i = 0; i < num; i++) {
+    //     cout << out_gpu[i] << " ";
+    // }
+    // cout << endl;
+    bool sorted = true;
+    for (int i = 1; i < num; i++) {
+        if (out_gpu[i] < out_gpu[i-1]) {
+            std::cout << "NOT SORTED" << std::endl;
+            sorted = false;
+            break;
+        }
     }
-    cout << endl;
+    if (sorted) {
+        std::cout << "Sorted" << std::endl;
+    }
 
     cudaFree(d_out);
     cudaFree(d_in);
@@ -333,9 +345,24 @@ int main(int argc, char* argv[])
     unsigned int num_threads = atoi(argv[1]);
 
     CALI_MARK_BEGIN(data_init);
-    std::srand(std::time(0));
-    for (unsigned int i = 0; i < arraySize; ++i) {
-        array[i] = std::rand() % 10000; // Random numbers between 0 and 9999
+    if (argc < 5) {
+        std::srand(std::time(0));
+        for (unsigned int i = 0; i < arraySize; ++i) {
+            array[i] = std::rand() % 10000; // Random numbers between 0 and 9999
+        }
+    } 
+    else {
+        std::cout << "FILE READING" << std::endl;
+        std::ifstream file(argv[4]);
+
+        if (!file.is_open()) {
+            std::cerr << "Error opening file!" << std::endl;
+        }
+
+        for (int i = 0; i < arraySize; i++) {
+            file >> array[i];
+        }
+        file.close();
     }
     CALI_MARK_END(data_init);
 
@@ -353,7 +380,7 @@ int main(int argc, char* argv[])
     adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
     adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", arraySize); // The number of elements in input dataset (1000)
-    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("InputType", argv[3]); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", 0); // The number of processors (MPI ranks)
     adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
     adiak::value("num_blocks", arraySize/num_threads); // The number of CUDA blocks 
