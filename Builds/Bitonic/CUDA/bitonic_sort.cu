@@ -51,6 +51,8 @@ int random_int()
   return (int)rand()/(int)RAND_MAX;
 }
 
+
+
 void array_print(int *arr, int length) 
 {
   int i;
@@ -60,16 +62,61 @@ void array_print(int *arr, int length)
   printf("\n");
 }
 
+// RANDOM
+// void array_fill(int *arr, int length)
+// {
+//   CALI_MARK_BEGIN(data_init);
+//   srand(time(NULL));
+//   int i;
+//   for (i = 0; i < length; ++i) {
+//     arr[i] = random_int();
+//   }
+//   CALI_MARK_END(data_init);
+// }
+
+// SORTED
+// void array_fill(int *arr, int length)
+// {
+//   CALI_MARK_BEGIN(data_init);
+//   srand(time(NULL));
+//   int i;
+//   for (i = 0; i < length; ++i) {
+//     arr[i] = i;
+//   }
+//   CALI_MARK_END(data_init);
+// }
+
+// REVERSE SORTED
+// void array_fill(int *arr, int length)
+// {
+//     CALI_MARK_BEGIN(data_init);
+//     srand(time(NULL));
+//     int i;
+//     for (i = 0; i < length; ++i) {
+//         arr[i] = length - 1 - i;  // Fill the array in reverse order
+//     }
+//     CALI_MARK_END(data_init);
+// }
+
+// 1% PERTURBED files
 void array_fill(int *arr, int length)
 {
-  CALI_MARK_BEGIN(data_init);
-  srand(time(NULL));
-  int i;
-  for (i = 0; i < length; ++i) {
-    arr[i] = random_int();
-  }
-  CALI_MARK_END(data_init);
+    CALI_MARK_BEGIN(data_init);
+    srand(time(NULL));
+    int i;
+    for (i = 0; i < length; ++i) {
+        // Calculate 1% of the index value
+        int onePercent = i / 100;
+
+        // Decide to add or subtract the perturbation
+        int perturbation = (rand() % 2 == 0) ? onePercent : -onePercent;
+
+        arr[i] = i + perturbation;
+    }
+    CALI_MARK_END(data_init);
 }
+
+
 
 __global__ void bitonic_sort_step(int *dev_values, int j, int k)
 {
@@ -237,7 +284,7 @@ int main(int argc, char *argv[])
   adiak::value("Datatype", "int");
   adiak::value("SizeOfDatatype", sizeof(int));
   adiak::value("InputSize", NUM_VALS); // The number of elements in input dataset (1000)
-  adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+  adiak::value("InputType", "1perturbed"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
   // adiak::value("num_procs", "2"); // The number of processors (MPI ranks)
   adiak::value("num_threads", THREADS);
   adiak::value("num_blocks", BLOCKS);

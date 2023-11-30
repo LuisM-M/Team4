@@ -132,6 +132,48 @@ int *createSNumbers(int howMany) {
     return numbers;
 }
 
+int *createReverseSortedNumbers(int howMany) {
+    int *numbers = (int *)malloc(sizeof(int) * howMany);
+
+    if (numbers == NULL) {
+        printf("Error: malloc failed.\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < howMany; i++) {
+        numbers[i] = howMany - i - 1;  // Start with the highest number and decrement
+    }
+
+    return numbers;
+}
+
+
+
+int *createOnePercentPerturbedNumbers(int howMany) {
+    int *numbers = (int *)malloc(sizeof(int) * howMany);
+
+    if (numbers == NULL) {
+        printf("Error: malloc failed.\n");
+        return NULL;
+    }
+
+    // Initialize the random number generator
+    srand(time(NULL));
+
+    for (int i = 0; i < howMany; i++) {
+        // Calculate 1% of the number
+        int onePercent = i / 100;
+
+        // Decide to add or subtract the perturbation
+        int perturbation = (rand() % 2 == 0) ? onePercent : -onePercent;
+
+        numbers[i] = i + perturbation;
+    }
+
+    return numbers;
+}
+
+
 // print array of howMany numbers.
 void printNumbers(int *numbers, int howMany)
 {
@@ -326,7 +368,7 @@ int main(int argc, char *argv[])
 
     CALI_MARK_BEGIN(data_init);
     // each process creates a list of random numbers.
-    int *numbers = createRNumbers(howMany);
+    int *numbers = createOnePercentPerturbedNumbers(howMany);
     CALI_MARK_END(data_init);
     // printNumbers(numbers, howMany);
     CALI_MARK_BEGIN(comm);
@@ -372,7 +414,7 @@ int main(int argc, char *argv[])
     adiak::value("Datatype", "int");                          // The datatype of input elements (e.g., double, int, float)
     adiak::value("SizeOfDatatype", "4");              // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", howMany);                        // The number of elements in input dataset (1000)
-    adiak::value("InputType", "Random");                        // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("InputType", "1perturbed");                        // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", numTasks);                        // The number of processors (MPI ranks)
     // adiak::value("num_threads", );                    // The number of CUDA or OpenMP threads
     // adiak::value("num_blocks", num_blocks);                      // The number of CUDA blocks
