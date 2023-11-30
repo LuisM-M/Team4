@@ -21,10 +21,12 @@
 
 num_threads=$1
 num_vals=$2
+type_data=$3
+file_name=$4
 #
 module load CUDA                #load CUDA module
 module load GCCcore/7.3.0
 #
 
 CALI_CONFIG="spot(output=cuda${num_threads}-${num_vals}.cali)" \
-./radix_sort $num_threads $num_vals
+./radix_sort $num_threads $num_vals $type_data $file_name
