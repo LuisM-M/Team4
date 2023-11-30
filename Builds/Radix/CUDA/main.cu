@@ -343,7 +343,8 @@ int main(int argc, char* argv[])
     unsigned int arraySize = atoi(argv[2]); // Size of the array // atoi(argv[2]);
     unsigned int *array = new unsigned int[arraySize]; 
     unsigned int num_threads = atoi(argv[1]);
-
+    std::string input_type = argv[3];
+    std::cout << "INPUT TYPE: " << input_type << std::endl;
     CALI_MARK_BEGIN(data_init);
     if (argc < 5) {
         std::srand(std::time(0));
@@ -353,7 +354,9 @@ int main(int argc, char* argv[])
     } 
     else {
         std::cout << "FILE READING" << std::endl;
-        std::ifstream file(argv[4]);
+        std::string filename = argv[4];
+        std::cout << "FILE NAME: " << filename << std::endl;
+        std::ifstream file(filename);
 
         if (!file.is_open()) {
             std::cerr << "Error opening file!" << std::endl;
@@ -380,7 +383,7 @@ int main(int argc, char* argv[])
     adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
     adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", arraySize); // The number of elements in input dataset (1000)
-    adiak::value("InputType", argv[3]); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+    adiak::value("InputType", input_type); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", 0); // The number of processors (MPI ranks)
     adiak::value("num_threads", num_threads); // The number of CUDA or OpenMP threads
     adiak::value("num_blocks", arraySize/num_threads); // The number of CUDA blocks 
