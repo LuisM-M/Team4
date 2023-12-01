@@ -1,3 +1,6 @@
+// Source: https://github.com/racorretjer/Parallel-Merge-Sort-with-MPI/blob/master/merge-mpi.c by Roberto Arce Corretjer
+//I implemented Caliper & Adiak
+
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +54,20 @@ int main(int argc, char** argv) {
 	// sorted input
     for (int i = 0; i < n; ++i) {
         original_array[i] = i;
-        // printf("%d ", nums[i]);
     }
+
+	// reversed input
+	// for (int i = n - 1; i >= 0; i--) {
+    // 	original_array[i] = i;
+	// }
+
+	// Perturb about 1% of the elements
+    // srand(time(NULL));
+    // for (int i = 0; i < n / 100; i++) {
+    //     int j = rand() % n;
+    //     original_array[j] = rand();  // Use rand() to generate integer values
+    // }
+
 	CALI_MARK_END(data_init);
 	/********** Initialize MPI **********/
 	int world_rank;
