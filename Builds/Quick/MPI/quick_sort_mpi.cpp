@@ -35,6 +35,9 @@ bool isSorted(int *array, int size) {
             return false;
         }
     }
+    // for (int i = 0; i < size - 1; ++i) {
+    //     printf("%d\n", array[i]);
+    // }
     return true;
 }
 
@@ -76,6 +79,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     int n = atoi(argv[1]); // Size of the array
+    int num_procs = atoi(argv[2]);
 
     int* sub_array = (int*)malloc((n / size) * sizeof(int));
     int* sorted = NULL;
@@ -87,6 +91,25 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < n; i++) {
             array[i] = rand() % 100; // Random numbers between 0 and 99
         }
+        // for (int i = 0; i < n; ++i) {
+        //     array[i] = i + 1;  // sorted
+        // }
+        // for (int i = 0; i < n; ++i) {
+        //     array[i] = n - i - 1;  // reversed
+        // }
+        // srand(time(NULL)); // perturbed
+
+        // int numElementsToSwitch = n / 100;
+
+        // for (int i = 0; i < numElementsToSwitch; ++i) {
+        //     int index1 = rand() % size;
+        //     int index2 = rand() % size;
+
+        //     // Swap elements at index1 and index2
+        //     int temp = array[index1];
+        //     array[index1] = array[index2];
+        //     array[index2] = temp;
+        // }
         sorted = (int*)malloc(n * sizeof(int));
     }
     CALI_MARK_END(data_init);
@@ -155,8 +178,8 @@ int main(int argc, char* argv[]) {
     adiak::value("Datatype", "int"); // The datatype of input elements
     adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes
     adiak::value("InputSize", n); // The number of elements in input dataset
-    adiak::value("InputType", "random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1% perturbed"
-    adiak::value("num_procs", size); // The number of processors (MPI ranks)
+    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1% perturbed"
+    adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
     adiak::value("group_num", 4); // The number of your group (integer)
     adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm
 
