@@ -22,16 +22,35 @@ const char *data_init = "data_init";
 const char *correctness_check = "correctness_check";
 
  // initialize data set
-void Init(int* values, int N) {
+void Init(int* values, int N, int size) {
 	srand( time(NULL) );
     for (int x = 0; x < N; ++x) {
         values[x] = rand() % 100;
     }
+    // for (int x = 0; x < N; ++x) {
+    //     values[x] = x + 1;  // sorted
+    // }
+    // for (int x = 0; x < N; ++x) {
+    //     values[x] = N - x - 1;  // reversed
+    // }
+
+    // int numElementsToSwitch = N / 100; // perturbed
+
+    // for (int i = 0; i < numElementsToSwitch; ++i) {
+    //     int index1 = rand() % size;
+    //     int index2 = rand() % size;
+
+    //     // Swap elements at index1 and index2
+    //     int temp = values[index1];
+    //     values[index1] = values[index2];
+    //     values[index2] = temp;
+    // }
 }
 
 // Kernel function
 __global__ static void quicksort(int* values, int N) {
     #define MAX_LEVELS	300
+
 	int pivot, L, R;
 	int idx =  threadIdx.x + blockIdx.x * blockDim.x;
 	int start[MAX_LEVELS];
@@ -59,20 +78,21 @@ __global__ static void quicksort(int* values, int N) {
 			end[idx + 1] = end[idx];
 			end[idx++] = L;
 			if (end[idx] - start[idx] > end[idx - 1] - start[idx - 1]) {
-                // swap start[idx] and start[idx-1]
-                int tmp = start[idx];
-                start[idx] = start[idx - 1];
-                start[idx - 1] = tmp;
+	                        // swap start[idx] and start[idx-1]
+        	                int tmp = start[idx];
+                	        start[idx] = start[idx - 1];
+                        	start[idx - 1] = tmp;
 
-                // swap end[idx] and end[idx-1]
-                tmp = end[idx];
-                end[idx] = end[idx - 1];
-                end[idx - 1] = tmp;
-	        }
-		} else {
+	                        // swap end[idx] and end[idx-1]
+        	                tmp = end[idx];
+                	        end[idx] = end[idx - 1];
+                        	end[idx - 1] = tmp;
+	                }
+
+		}
+		else
 			idx--;
-	    }
-    }
+	}
 }    
  
  // program main
@@ -100,7 +120,7 @@ __global__ static void quicksort(int* values, int N) {
                 
 	//for (int i = 0; i < 5; ++i) {
     CALI_MARK_BEGIN(data_init);
-    Init(r_values, N);
+    Init(r_values, N, size);
     CALI_MARK_END(data_init);
 
     // copy data to device
@@ -121,7 +141,7 @@ __global__ static void quicksort(int* values, int N) {
     quicksort <<< MAX_THREADS / cThreadsPerBlock, MAX_THREADS / cThreadsPerBlock, cThreadsPerBlock >>> (d_values, N);
     cudaDeviceSynchronize();
     CALI_MARK_END("comp_large");
-    CALI_MARK_END("comp");
+    CALI_MARK_END("comp");  
 
     CALI_MARK_BEGIN(comm);
     CALI_MARK_BEGIN(comm_large);
@@ -161,7 +181,7 @@ __global__ static void quicksort(int* values, int N) {
  	adiak::value("Datatype", "int"); // The datatype of input elements (e.g., double, int, float)
  	adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
  	adiak::value("InputSize", N); // The number of elements in input dataset (1000)
- 	adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+ 	adiak::value("InputType", "1% perturbed"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
  	// adiak::value("num_procs", ); // The number of processors (MPI ranks)
  	adiak::value("num_threads", MAX_THREADS); // The number of CUDA or OpenMP threads
  	adiak::value("num_blocks", num_blocks); // The number of CUDA blocks 
