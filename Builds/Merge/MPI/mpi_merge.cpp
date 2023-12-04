@@ -52,9 +52,9 @@ int main(int argc, char** argv) {
 	// }
 
 	// sorted input
-    for (int i = 0; i < n; ++i) {
-        original_array[i] = i;
-    }
+    // for (int i = 0; i < n; ++i) {
+    //     original_array[i] = i;
+    // }
 
 	// reversed input
 	// for (int i = n - 1; i >= 0; i--) {
@@ -62,11 +62,11 @@ int main(int argc, char** argv) {
 	// }
 
 	// Perturb about 1% of the elements
-    // srand(time(NULL));
-    // for (int i = 0; i < n / 100; i++) {
-    //     int j = rand() % n;
-    //     original_array[j] = rand();  // Use rand() to generate integer values
-    // }
+    srand(time(NULL));
+    for (int i = 0; i < n / 100; i++) {
+        int j = rand() % n;
+        original_array[j] = rand();  // Use rand() to generate integer values
+    }
 
 	CALI_MARK_END(data_init);
 	/********** Initialize MPI **********/
@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
     adiak::value("Datatype", "int");
     adiak::value("SizeOfDatatype", "4"); // sizeof(datatype) of input elements in bytes (e.g., 1, 2, 4)
     adiak::value("InputSize", n); // The number of elements in input dataset (1000)
-    adiak::value("InputType", "Sorted"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", etc.
+    adiak::value("InputType", "1%perturbed"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
     adiak::value("num_procs", world_size);
     adiak::value("group_num", "4");
     adiak::value("implementation_source", "Online"); 
