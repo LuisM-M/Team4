@@ -25,6 +25,6 @@ filename=$4
 module load intel/2020b       # load Intel software stack
 module load CMake/3.12.1
 
-CALI_CONFIG="spot(output=p${processes}-a${array_size}.cali, \
+CALI_CONFIG="spot(output=p${processes}-a${array_size}_${input_type}.cali, \
     time.variance)" \
 mpirun -np $processes ./radix $array_size $input_type $filename 

@@ -12,14 +12,10 @@
 
 double start, end;
 const char *data_init = "data_init"; //
-const char *comm = "comm";
-const char *comm_small = "comm_small";
-const char *MPI_Send_1 = "MPI_Send_1";//
-const char *MPI_Recv_1 = "MPI_Recv_1";//
-const char *comm_large = "comm_large";
+const char *mpi_send = "mpi_send";//
+const char *mpi_recv = "mpi_recv";//
 const char *comp = "comp"; //
 const char *comp_small = "comp_small";//
-const char *seq_sort = "seq_sort";//
 const char *comp_large = "comp_large";//
 
 // Get the maximum value in the array
@@ -49,12 +45,10 @@ void countSort(int arr[], int n, int exp) {
         output[count[(arr[i] / exp) % 10] - 1] = arr[i];
         count[(arr[i] / exp) % 10]--;
     }
-    // may need to move
-    CALI_MARK_BEGIN(seq_sort);
+
     for (int i = 0; i < n; i++) {
         arr[i] = output[i];
     }
-    CALI_MARK_END(seq_sort);
 }
 
 // Radix Sort Function
@@ -114,9 +108,9 @@ int main(int argc, char** argv) {
     MPI_Bcast(arr, num_vals, MPI_INT, 0, MPI_COMM_WORLD);
     CALI_MARK_END(data_init);
 
-    CALI_MARK_BEGIN(MPI_Send_1);
+    CALI_MARK_BEGIN(mpi_send);
     MPI_Scatter(arr, local_num_vals, MPI_INT, local_arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
-    CALI_MARK_END(MPI_Send_1);
+    CALI_MARK_END(mpi_send);
 
     CALI_MARK_BEGIN(comp); // may need to move
     start = MPI_Wtime();
@@ -124,9 +118,9 @@ int main(int argc, char** argv) {
     end = MPI_Wtime();
     CALI_MARK_END(comp);
 
-    CALI_MARK_BEGIN(MPI_Recv_1);
+    CALI_MARK_BEGIN(mpi_recv);
     MPI_Gather(local_arr, local_num_vals, MPI_INT, arr, local_num_vals, MPI_INT, 0, MPI_COMM_WORLD);
-    CALI_MARK_END(MPI_Recv_1);
+    CALI_MARK_END(mpi_recv);
 
     if (rank == 0) {
         // Reapply the radix sort to the entire array
