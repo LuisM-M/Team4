@@ -34,7 +34,7 @@ const char* comm_large = "comm_large";
 const char* comp = "comp";
 const char* comp_large = "comp_large";
 const char* data_init = "data_init";
-const char* cudaMemcpy_1 = "cudaMemcpy_1";
+// const char* cudaMemcpy = "cudaMemcpy";
 
 // const char* bitonic_sort_step_region = "bitonic_sort_step";
 // const char* cudaMemcpy_host_to_device = "cudaMemcpy_host_to_device";
@@ -173,12 +173,12 @@ void bitonic_sort(int *values)
 
 
 
-  CALI_MARK_BEGIN(cudaMemcpy_1);
+  CALI_MARK_BEGIN("cudaMemcpy");
   
   // cuda memcpy
   cudaMemcpy(dev_values, values, size, cudaMemcpyHostToDevice);
   
-  CALI_MARK_END(cudaMemcpy_1);
+  CALI_MARK_END("cudaMemcpy");
   
   CALI_MARK_END(comm_large);
   CALI_MARK_END(comm);
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
   adiak::value("Datatype", "int");
   adiak::value("SizeOfDatatype", sizeof(int));
   adiak::value("InputSize", NUM_VALS); // The number of elements in input dataset (1000)
-  adiak::value("InputType", "1perturbed"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
+  adiak::value("InputType", "1%perturbed"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1%perturbed"
   // adiak::value("num_procs", "2"); // The number of processors (MPI ranks)
   adiak::value("num_threads", THREADS);
   adiak::value("num_blocks", BLOCKS);
