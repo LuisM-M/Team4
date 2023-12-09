@@ -34,8 +34,8 @@
 
 const char* comp = "comp";
 const char* comp_large = "comp_large";
-const char* comp_small_1 = "comp_small_1";
-const char* comp_small_2 = "comp_small_2";
+const char* comp_small_1 = "comp_small_local_sort";
+const char* comp_small_2 = "comp_small_shuffle";
 const char* data_init = "data_init";
 const char* cudaMemcpy_htd = "cudaMemcpy_htd";
 const char* cudaMemcpy_dth = "cudaMemcpy_dth"; 
