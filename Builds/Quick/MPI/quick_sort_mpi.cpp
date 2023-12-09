@@ -29,6 +29,40 @@ void swap(int* arr, int i, int j) {
     arr[j] = t;
 }
 
+void random(int* array, int n) {
+    for (int i = 0; i < n; i++) {
+        array[i] = rand() % 100;
+    }
+}
+
+void sort(int* array, int n) {
+    for (int i = 0; i < n; ++i) {
+        array[i] = i + 1;
+    }
+}
+
+void reversed(int* array, int n) {
+    for (int i = 0; i < n; ++i) {
+        array[i] = n - i - 1;
+    }
+}
+
+void perturbed(int* array, int n, int size) {
+    srand(time(NULL)); // perturbed
+
+    int numElementsToSwitch = n / 100;
+
+    for (int i = 0; i < numElementsToSwitch; ++i) {
+        int index1 = rand() % size;
+        int index2 = rand() % size;
+
+        // Swap elements at index1 and index2
+        int temp = array[index1];
+        array[index1] = array[index2];
+        array[index2] = temp;
+    }
+}
+
 bool isSorted(int *array, int size) {
     for (int i = 0; i < size - 1; ++i) {
         if (array[i] > array[i + 1]) {
@@ -78,8 +112,8 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    int n = atoi(argv[1]); // Size of the array
-    int num_procs = atoi(argv[2]);
+    int n = atoi(argv[2]);
+    const char* input_type = argv[1];
 
     int* sub_array = (int*)malloc((n / size) * sizeof(int));
     int* sorted = NULL;
@@ -87,10 +121,22 @@ int main(int argc, char* argv[]) {
     CALI_MARK_BEGIN(data_init);
     if (rank == 0) {
         array = (int*)malloc(n * sizeof(int));
-        // Initialize the array with random data
-        for (int i = 0; i < n; i++) {
-            array[i] = rand() % 100; // Random numbers between 0 and 99
+        if(strcmp(input_type, "random") == 0) {
+            random(array, n);
         }
+        if(strcmp(input_type, "sorted") == 0) {
+            sort(array, n);
+        }
+        if(strcmp(input_type, "reversed") == 0) {
+            reversed(array, n);
+        }
+        if(strcmp(input_type, "perturbed") == 0) {
+            perturbed(array, n, size);
+        }
+        // Initialize the array with random data
+        // for (int i = 0; i < n; i++) {
+        //     array[i] = rand() % 100; // Random numbers between 0 and 99
+        // }
         // for (int i = 0; i < n; ++i) {
         //     array[i] = i + 1;  // sorted
         // }
@@ -178,8 +224,8 @@ int main(int argc, char* argv[]) {
     adiak::value("Datatype", "int"); // The datatype of input elements
     adiak::value("SizeOfDatatype", sizeof(int)); // sizeof(datatype) of input elements in bytes
     adiak::value("InputSize", n); // The number of elements in input dataset
-    adiak::value("InputType", "Random"); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1% perturbed"
-    adiak::value("num_procs", num_procs); // The number of processors (MPI ranks)
+    adiak::value("InputType", input_type); // For sorting, this would be "Sorted", "ReverseSorted", "Random", "1% perturbed"
+    adiak::value("num_procs", size); // The number of processors (MPI ranks)
     adiak::value("group_num", 4); // The number of your group (integer)
     adiak::value("implementation_source", "AI"); // Where you got the source code of your algorithm
 
